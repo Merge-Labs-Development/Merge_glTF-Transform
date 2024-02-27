@@ -364,7 +364,7 @@ commands or using the scripting API.
 				keepLeaves: false,
 				keepSolidTextures: false,
 			}),
-			sparse(),
+			//sparse(),
 		);
 
 		// Texture compression.
