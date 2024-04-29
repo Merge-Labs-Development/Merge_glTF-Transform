@@ -3,16 +3,17 @@ import { getPixels, savePixels } from 'ndarray-pixels';
 import {
 	Accessor,
 	Document,
+	GLTF,
 	Primitive,
 	Property,
 	PropertyType,
 	Texture,
 	Transform,
 	TransformContext,
-	TypedArray,
 	vec2,
 } from '@gltf-transform/core';
-import { cleanPrimitive } from './clean-primitive.js';
+
+const { POINTS, LINES, LINE_STRIP, LINE_LOOP, TRIANGLES, TRIANGLE_STRIP, TRIANGLE_FAN } = Primitive.Mode;
 
 /**
  * Prepares a function used in an {@link Document#transform} pipeline. Use of this wrapper is
@@ -67,18 +68,18 @@ export function getGLPrimitiveCount(prim: Primitive): number {
 	// Reference: https://www.khronos.org/opengl/wiki/Primitive
 	switch (prim.getMode()) {
 		case Primitive.Mode.POINTS:
-			return position.getCount();
+			return indices ? indices.getCount() : position.getCount();
 		case Primitive.Mode.LINES:
 			return indices ? indices.getCount() / 2 : position.getCount() / 2;
 		case Primitive.Mode.LINE_LOOP:
-			return position.getCount();
+			return indices ? indices.getCount() : position.getCount();
 		case Primitive.Mode.LINE_STRIP:
-			return position.getCount() - 1;
+			return indices ? indices.getCount() - 1 : position.getCount() - 1;
 		case Primitive.Mode.TRIANGLES:
 			return indices ? indices.getCount() / 3 : position.getCount() / 3;
 		case Primitive.Mode.TRIANGLE_STRIP:
 		case Primitive.Mode.TRIANGLE_FAN:
-			return position.getCount() - 2;
+			return indices ? indices.getCount() - 2 : position.getCount() - 2;
 		default:
 			throw new Error('Unexpected mode: ' + prim.getMode());
 	}
@@ -190,111 +191,27 @@ export function shallowCloneAccessor(document: Document, accessor: Accessor): Ac
 		.setSparse(accessor.getSparse());
 }
 
-export function remapPrimitive(prim: Primitive, remap: TypedArray, dstVertexCount: number): Primitive {
-	const document = Document.fromGraph(prim.getGraph())!;
-
-	// Remap indices.
-
-	const srcVertexCount = prim.getAttribute('POSITION')!.getCount();
-	const srcIndices = prim.getIndices();
-	const srcIndicesArray = srcIndices ? srcIndices.getArray() : null;
-	const dstIndices = document.createAccessor();
-	const dstIndicesCount = srcIndices ? srcIndices.getCount() : srcVertexCount; // primitive count does not change.
-	const dstIndicesArray = createIndices(dstIndicesCount, dstVertexCount);
-	for (let i = 0; i < dstIndicesCount; i++) {
-		dstIndicesArray[i] = remap[srcIndicesArray ? srcIndicesArray[i] : i];
-	}
-	prim.setIndices(dstIndices.setArray(dstIndicesArray));
-
-	// Remap vertices.
-
-	const srcAttributes = deepListAttributes(prim);
-	for (const srcAttribute of prim.listAttributes()) {
-		const dstAttribute = shallowCloneAccessor(document, srcAttribute);
-		prim.swap(srcAttribute, remapAttribute(dstAttribute, remap, dstVertexCount));
-		if (srcAttribute.listParents().length === 1) srcAttribute.dispose();
-	}
-	for (const target of prim.listTargets()) {
-		for (const srcAttribute of target.listAttributes()) {
-			const dstAttribute = shallowCloneAccessor(document, srcAttribute);
-			target.swap(srcAttribute, remapAttribute(dstAttribute, remap, dstVertexCount));
-			if (srcAttribute.listParents().length === 1) srcAttribute.dispose();
-		}
-	}
-
-	// Clean up accessors.
-
-	if (srcIndices && srcIndices.listParents().length === 1) srcIndices.dispose();
-	for (const srcAttribute of srcAttributes) {
-		if (srcAttribute.listParents().length === 1) srcAttribute.dispose();
-	}
-
-	// Clean up degenerate topology.
-
-	cleanPrimitive(prim);
-
-	return prim;
-}
-
-/** @hidden */
-export function remapAttribute(
-	srcAttribute: Accessor,
-	remap: TypedArray,
-	dstCount: number,
-	dstAttribute = srcAttribute,
-): Accessor {
-	const elementSize = srcAttribute.getElementSize();
-	const srcCount = srcAttribute.getCount();
-	const srcArray = srcAttribute.getArray()!;
-	// prettier-ignore
-	const dstArray = dstAttribute === srcAttribute
-		? srcArray.slice(0, dstCount * elementSize)
-		: dstAttribute.getArray()!;
-	const done = new Uint8Array(dstCount);
-
-	for (let srcIndex = 0; srcIndex < srcCount; srcIndex++) {
-		const dstIndex = remap[srcIndex];
-		if (done[dstIndex]) continue;
-		for (let j = 0; j < elementSize; j++) {
-			dstArray[dstIndex * elementSize + j] = srcArray[srcIndex * elementSize + j];
-		}
-		done[dstIndex] = 1;
-	}
-
-	return dstAttribute.setArray(dstArray);
-}
-
-/** @hidden */
-export function remapIndices(
-	srcIndices: Accessor,
-	remap: TypedArray,
-	dstOffset: number,
-	dstCount: number,
-	dstIndices = srcIndices,
-): Accessor {
-	const srcCount = srcIndices.getCount();
-	const srcArray = srcIndices.getArray()!;
-	const dstArray = dstIndices === srcIndices ? srcArray.slice(0, dstCount) : dstIndices.getArray()!;
-
-	for (let i = 0; i < srcCount; i++) {
-		const srcIndex = srcArray[i];
-		const dstIndex = remap[srcIndex];
-		dstArray[dstOffset + i] = dstIndex;
-	}
-
-	return dstIndices.setArray(dstArray);
-}
-
 /** @hidden */
 export function createIndices(count: number, maxIndex = count): Uint16Array | Uint32Array {
-	const array = maxIndex <= 65534 ? new Uint16Array(count) : new Uint32Array(count);
+	const array = createIndicesEmpty(count, maxIndex);
 	for (let i = 0; i < array.length; i++) array[i] = i;
 	return array;
 }
 
 /** @hidden */
+export function createIndicesEmpty(count: number, maxIndex = count): Uint16Array | Uint32Array {
+	return maxIndex <= 65534 ? new Uint16Array(count) : new Uint32Array(count);
+}
+
+/** @hidden */
 export function isUsed(prop: Property): boolean {
 	return prop.listParents().some((parent) => parent.propertyType !== PropertyType.ROOT);
+}
+
+/** @hidden */
+export function isEmptyObject(object: Record<string, unknown>): boolean {
+	for (const key in object) return false;
+	return true;
 }
 
 /**
@@ -307,7 +224,7 @@ export function createPrimGroupKey(prim: Primitive): string {
 	const document = Document.fromGraph(prim.getGraph())!;
 	const material = prim.getMaterial();
 	const materialIndex = document.getRoot().listMaterials().indexOf(material!);
-	const mode = prim.getMode();
+	const mode = BASIC_MODE_MAPPING[prim.getMode()];
 	const indices = !!prim.getIndices();
 
 	const attributes = prim
@@ -340,7 +257,11 @@ export function createPrimGroupKey(prim: Primitive): string {
 	return `${materialIndex}|${mode}|${indices}|${attributes}|${targets}`;
 }
 
-/** @hidden */
+/**
+ * Scales `size` NxN dimensions to fit within `limit` NxN dimensions, without
+ * changing aspect ratio. If `size` <= `limit` in all dimensions, returns `size`.
+ * @hidden
+ */
 export function fitWithin(size: vec2, limit: vec2): vec2 {
 	const [maxWidth, maxHeight] = limit;
 	const [srcWidth, srcHeight] = size;
@@ -365,7 +286,10 @@ export function fitWithin(size: vec2, limit: vec2): vec2 {
 
 type ResizePreset = 'nearest-pot' | 'ceil-pot' | 'floor-pot';
 
-/** @hidden */
+/**
+ * Scales `size` NxN dimensions to the specified power of two.
+ * @hidden
+ */
 export function fitPowerOfTwo(size: vec2, method: ResizePreset): vec2 {
 	if (isPowerOfTwo(size[0]) && isPowerOfTwo(size[1])) {
 		return size;
@@ -403,3 +327,18 @@ export function floorPowerOfTwo(value: number): number {
 export function ceilPowerOfTwo(value: number): number {
 	return Math.pow(2, Math.ceil(Math.log(value) / Math.LN2));
 }
+
+/**
+ * Mapping from any glTF primitive mode to its equivalent basic mode, as returned by
+ * {@link convertPrimitiveMode}.
+ * @hidden
+ */
+export const BASIC_MODE_MAPPING = {
+	[POINTS]: POINTS,
+	[LINES]: LINES,
+	[LINE_STRIP]: LINES,
+	[LINE_LOOP]: LINES,
+	[TRIANGLES]: TRIANGLES,
+	[TRIANGLE_STRIP]: TRIANGLES,
+	[TRIANGLE_FAN]: TRIANGLES,
+} as Record<GLTF.MeshPrimitiveMode, GLTF.MeshPrimitiveMode>;

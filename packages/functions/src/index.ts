@@ -1,10 +1,20 @@
 export * from './center.js';
 export * from './clear-node-parent.js';
 export * from './clear-node-transform.js';
+export * from './convert-primitive-mode.js';
 export * from './dedup.js';
 export { dequantize, dequantizePrimitive, DequantizeOptions } from './dequantize.js';
+export {
+	cloneDocument,
+	mergeDocuments,
+	copyToDocument,
+	moveToDocument,
+	createDefaultPropertyResolver,
+} from './document-utils.js';
 export * from './draco.js';
 export * from './flatten.js';
+export * from './get-bounds.js';
+export * from './get-vertex-count.js';
 export * from './get-texture-color-space.js';
 export * from './inspect.js';
 export * from './instance.js';
@@ -33,7 +43,7 @@ export * from './transform-mesh.js';
 export * from './transform-primitive.js';
 export * from './unlit.js';
 export * from './unpartition.js';
-export { getGLPrimitiveCount, isTransformPending, createTransform } from './utils.js';
+export { getGLPrimitiveCount, isTransformPending, createTransform, fitWithin, fitPowerOfTwo } from './utils.js';
 export * from './unweld.js';
 export * from './vertex-color-space.js';
 export * from './weld.js';

@@ -40,7 +40,6 @@ import {
 	DracoOptions,
 	simplify,
 	SIMPLIFY_DEFAULTS,
-	WELD_DEFAULTS,
 	textureCompress,
 	FlattenOptions,
 	flatten,
@@ -275,13 +274,41 @@ commands or using the scripting API.
 		validator: Validator.NUMBER,
 		default: SIMPLIFY_DEFAULTS.error,
 	})
+	.option('--simplify-ratio <ratio>', 'Target ratio (0–1) of vertices to keep.', {
+		validator: Validator.NUMBER,
+		default: SIMPLIFY_DEFAULTS.ratio,
+	})
+	.option('--simplify-lock-border <bool>', 'Whether to lock topological borders of the mesh.', {
+		validator: Validator.BOOLEAN,
+		default: SIMPLIFY_DEFAULTS.lockBorder,
+	})
+	.option('--prune <bool>', 'Removes properties from the file if they are not referenced by a Scene.', {
+		validator: Validator.BOOLEAN,
+		default: true,
+	})
+	.option('--prune-attributes <bool>', 'Whether to prune unused vertex attributes.', {
+		validator: Validator.BOOLEAN,
+		default: true,
+	})
+	.option('--prune-leaves <bool>', 'Whether to prune empty leaf nodes.', {
+		validator: Validator.BOOLEAN,
+		default: true,
+	})
+	.option(
+		'--prune-solid-textures <bool>',
+		'Whether to prune solid (single-color) textures, converting them to material factors.',
+		{
+			validator: Validator.BOOLEAN,
+			default: true,
+		},
+	)
 	.option(
 		'--compress <method>',
 		'Floating point compression method. Draco compresses geometry; Meshopt ' +
 			'and quantization compress geometry and animation.',
 		{
 			validator: ['draco', 'meshopt', 'quantize', false],
-			default: 'draco',
+			default: 'meshopt',
 		},
 	)
 	.option(
@@ -305,19 +332,10 @@ commands or using the scripting API.
 		validator: Validator.BOOLEAN,
 		default: true,
 	})
-	.option('--weld <bool>', 'Index geometry and merge similar vertices. Often required when simplifying geometry.', {
+	.option('--weld <bool>', 'Merge equivalent vertices. Required when simplifying geometry.', {
 		validator: Validator.BOOLEAN,
 		default: true,
 	})
-	.option(
-		'--weld-tolerance <tolerance>',
-		'Tolerance for welding vertex positions, as a fraction of primitive AABB. ' +
-			'When set to zero, welds run much faster and require bitwise equality.',
-		{
-			validator: Validator.NUMBER,
-			default: WELD_DEFAULTS.tolerance,
-		},
-	)
 	.action(async ({ args, options, logger }) => {
 		const opts = options as {
 			instance: boolean;
@@ -326,13 +344,18 @@ commands or using the scripting API.
 			paletteMin: number;
 			simplify: boolean;
 			simplifyError: number;
+			simplifyRatio: number;
+			simplifyLockBorder: boolean;
+			prune: boolean;
+			pruneAttributes: boolean;
+			pruneLeaves: boolean;
+			pruneSolidTextures: boolean;
 			compress: 'draco' | 'meshopt' | 'quantize' | false;
 			textureCompress: 'ktx2' | 'webp' | 'webp' | 'auto' | false;
 			textureSize: number;
 			flatten: boolean;
 			join: boolean;
 			weld: boolean;
-			weldTolerance: number;
 		};
 
 		// Baseline transforms.
@@ -342,48 +365,68 @@ commands or using the scripting API.
 		if (opts.palette) transforms.push(palette({ min: opts.paletteMin }));
 		if (opts.flatten) transforms.push(flatten());
 		if (opts.join) transforms.push(join());
+		if (opts.weld) transforms.push(weld());
 
-		if (opts.weld) {
+		if (opts.simplify) {
 			transforms.push(
-				weld({
-					tolerance: opts.weldTolerance,
-					toleranceNormal: opts.simplify ? 0.5 : WELD_DEFAULTS.toleranceNormal,
+				simplify({
+					simplifier: MeshoptSimplifier,
+					error: opts.simplifyError,
+					ratio: opts.simplifyRatio,
+					lockBorder: opts.simplifyLockBorder,
 				}),
 			);
 		}
 
-		if (opts.simplify) {
-			transforms.push(simplify({ simplifier: MeshoptSimplifier, error: opts.simplifyError }));
+		transforms.push(resample({ ready: resampleReady, resample: resampleWASM }));
+
+		if (opts.prune) {
+			transforms.push(
+				prune({
+					keepAttributes: !opts.pruneAttributes,
+					keepIndices: false,
+					keepLeaves: !opts.pruneLeaves,
+					keepSolidTextures: !opts.pruneSolidTextures,
+				}),
+			);
 		}
 
-		transforms.push(
-			resample({ ready: resampleReady, resample: resampleWASM }),
-			prune({
-				keepAttributes: false,
-				keepIndices: false,
-				keepLeaves: false,
-				keepSolidTextures: false,
-			}),
-			//sparse(),
-		);
+		//transforms.push(sparse());
 
 		// Texture compression.
 		if (opts.textureCompress === 'ktx2') {
+			const { default: encoder } = await import('sharp');
 			const slotsUASTC = micromatch.makeRe(
 				'{normalTexture,occlusionTexture,metallicRoughnessTexture}',
 				MICROMATCH_OPTIONS,
 			);
 			transforms.push(
-				toktx({ mode: Mode.UASTC, slots: slotsUASTC, level: 4, rdo: true, rdoLambda: 4, zstd: 18 }),
-				toktx({ mode: Mode.ETC1S, quality: 255 }),
+				toktx({
+					encoder,
+					resize: [opts.textureSize, opts.textureSize],
+					mode: Mode.UASTC,
+					slots: slotsUASTC,
+					level: 4,
+					rdo: true,
+					rdoLambda: 4,
+					limitInputPixels: options.limitInputPixels as boolean,
+				}),
+				toktx({
+					encoder,
+					resize: [opts.textureSize, opts.textureSize],
+					mode: Mode.ETC1S,
+					quality: 255,
+					limitInputPixels: options.limitInputPixels as boolean,
+				}),
 			);
 		} else if (opts.textureCompress !== false) {
 			const { default: encoder } = await import('sharp');
 			transforms.push(
 				textureCompress({
 					encoder,
-					targetFormat: opts.textureCompress === 'auto' ? undefined : opts.textureCompress,
 					resize: [opts.textureSize, opts.textureSize],
+					targetFormat: opts.textureCompress === 'auto' ? undefined : opts.textureCompress,
+					limitInputPixels: options.limitInputPixels as boolean,
 				}),
 			);
 		}
@@ -921,45 +964,16 @@ Removes KHR_mesh_quantization, if present.`.trim(),
 
 // WELD
 program
-	.command('weld', 'Index geometry and optionally merge similar vertices')
+	.command('weld', 'Merge equivalent vertices to optimize geometry')
 	.help(
 		`
-Index geometry and optionally merge similar vertices. When merged and indexed,
-data is shared more efficiently between vertices. File size can be reduced, and
-the GPU can sometimes use the vertex cache more efficiently.
-
-When welding, the --tolerance threshold determines which vertices qualify for
-welding based on distance between the vertices as a fraction of the primitive's
-bounding box (AABB). For example, --tolerance=0.01 welds vertices within +/-1%
-of the AABB's longest dimension. Other vertex attributes are also compared
-during welding, with attribute-specific thresholds. For --tolerance=0, geometry
-is indexed in place, without merging.
-
-To preserve visual appearance consistently, use low --tolerance-normal thresholds
-around 0.1 (±3º). To pre-processing a scene before simplification or LOD creation,
-use higher thresholds around 0.5 (±30º).
+Welds mesh geometry, merging bitwise identical vertices. When merged and
+indexed, data is shared more efficiently between vertices. File size
+can be reduced, and the GPU uses the vertex cache more efficiently.
 	`.trim(),
 	)
 	.argument('<input>', INPUT_DESC)
 	.argument('<output>', OUTPUT_DESC)
-	.option(
-		'--tolerance',
-		'Tolerance for welding vertex positions, as a fraction of primitive AABB. ' +
-			'When set to zero, welds run much faster and require bitwise equality.',
-		{
-			validator: Validator.NUMBER,
-			default: WELD_DEFAULTS.tolerance,
-		},
-	)
-	.option(
-		'--tolerance-normal',
-		'Tolerance for vertex normals, in radians. If --tolerance is zero, ' +
-			'--tolerance-normal is ignored and welds require bitwise equality.',
-		{
-			validator: Validator.NUMBER,
-			default: WELD_DEFAULTS.toleranceNormal,
-		},
-	)
 	.action(({ args, options, logger }) =>
 		Session.create(io, logger, args.input, args.output).transform(weld(options as unknown as WeldOptions)),
 	);
@@ -1012,7 +1026,7 @@ compute MikkTSpace tangents at runtime.
 		Session.create(io, logger, args.input, args.output).transform(
 			unweld(),
 			tangents({ generateTangents: mikktspace.generateTangents, ...options }),
-			weld({ tolerance: 0 }),
+			weld(),
 		),
 	);
 
@@ -1076,7 +1090,7 @@ Based on the meshoptimizer library (https://github.com/zeux/meshoptimizer).
 		validator: Validator.NUMBER,
 		default: SIMPLIFY_DEFAULTS.error,
 	})
-	.option('--lock-border <lockBorder>', 'Whether to lock topological borders of the mesh', {
+	.option('--lock-border <bool>', 'Whether to lock topological borders of the mesh', {
 		validator: Validator.BOOLEAN,
 		default: SIMPLIFY_DEFAULTS.lockBorder,
 	})
@@ -1298,14 +1312,6 @@ normal maps and ETC1S for other textures, for example.`.trim(),
 		{ validator: Validator.NUMBER, default: ETC1S_DEFAULTS.maxSelectors },
 	)
 	.option(
-		'--power-of-two',
-		'Resizes any non-power-of-two textures to the closest power-of-two' +
-			' dimensions, not exceeding 2048x2048px. Required for ' +
-			' compatibility on some older devices and APIs, particularly ' +
-			' WebGL 1.0.',
-		{ validator: Validator.BOOLEAN, default: ETC1S_DEFAULTS.powerOfTwo },
-	)
-	.option(
 		'--rdo-threshold <rdo_threshold>',
 		'Set endpoint and selector RDO quality threshold. Lower' +
 			' is higher quality but less quality per output bit (try 1.0-3.0).' +
@@ -1321,12 +1327,13 @@ normal maps and ETC1S for other textures, for example.`.trim(),
 		validator: Validator.NUMBER,
 		default: ETC1S_DEFAULTS.jobs,
 	})
-	.action(({ args, options, logger }) => {
+	.action(async ({ args, options, logger }) => {
+		const { default: encoder } = await import('sharp');
 		const mode = Mode.ETC1S;
 		const pattern = options.pattern ? micromatch.makeRe(String(options.pattern), MICROMATCH_OPTIONS) : null;
 		const slots = options.slots ? micromatch.makeRe(String(options.slots), MICROMATCH_OPTIONS) : null;
 		return Session.create(io, logger, args.input, args.output).transform(
-			toktx({ ...options, mode, pattern, slots }),
+			toktx({ ...options, encoder, mode, pattern, slots }),
 		);
 	});
 
@@ -1371,14 +1378,6 @@ for textures where the quality is sufficient.`.trim(),
 			'\n3     | Slower    | 48.01dB' +
 			'\n4     | Very slow | 48.24dB',
 		{ validator: [0, 1, 2, 3, 4], default: UASTC_DEFAULTS.level },
-	)
-	.option(
-		'--power-of-two',
-		'Resizes any non-power-of-two textures to the closest power-of-two' +
-			' dimensions, not exceeding 2048x2048px. Required for ' +
-			' compatibility on some older devices and APIs, particularly ' +
-			' WebGL 1.0.',
-		{ validator: Validator.BOOLEAN },
 	)
 	.option('--rdo', 'Enable UASTC RDO post-processing.', { validator: Validator.BOOLEAN, default: UASTC_DEFAULTS.rdo })
 	.option(
@@ -1441,11 +1440,14 @@ for textures where the quality is sufficient.`.trim(),
 		validator: Validator.NUMBER,
 		default: UASTC_DEFAULTS.jobs,
 	})
-	.action(({ args, options, logger }) => {
+	.action(async ({ args, options, logger }) => {
+		const { default: encoder } = await import('sharp');
 		const mode = Mode.UASTC;
 		const pattern = options.pattern ? micromatch.makeRe(String(options.pattern), MICROMATCH_OPTIONS) : null;
 		const slots = options.slots ? micromatch.makeRe(String(options.slots), MICROMATCH_OPTIONS) : null;
-		Session.create(io, logger, args.input, args.output).transform(toktx({ ...options, mode, pattern, slots }));
+		Session.create(io, logger, args.input, args.output).transform(
+			toktx({ ...options, encoder, mode, pattern, slots }),
+		);
 	});
 
 // KTXFIX
@@ -1507,6 +1509,7 @@ program
 				quality: options.quality as number,
 				effort: options.effort as number,
 				lossless: options.lossless as boolean,
+				limitInputPixels: options.limitInputPixels as boolean,
 			}),
 		);
 	});
@@ -1549,6 +1552,7 @@ program
 				effort: options.effort as number,
 				lossless: options.lossless as boolean,
 				nearLossless: options.nearLossless as boolean,
+				limitInputPixels: options.limitInputPixels as boolean,
 			}),
 		);
 	});
@@ -1584,6 +1588,7 @@ program
 				slots,
 				quality: options.quality as number,
 				effort: options.effort as number,
+				limitInputPixels: options.limitInputPixels as boolean,
 			}),
 		);
 	});
@@ -1617,6 +1622,7 @@ program
 				formats,
 				slots,
 				quality: options.quality as number,
+				limitInputPixels: options.limitInputPixels as boolean,
 			}),
 		);
 	});
@@ -1730,6 +1736,16 @@ program.option('--vertex-layout <layout>', 'Vertex buffer layout preset.', {
 program.option('--config <path>', 'Installs custom commands or extensions. (EXPERIMENTAL)', {
 	validator: Validator.STRING,
 });
+program.option(
+	'--limit-input-pixels',
+	'Attempts to avoid processing very high resolution images, where memory or ' +
+		'other limits may be exceeded. (EXPERIMENTAL)',
+	{
+		validator: Validator.BOOLEAN,
+		default: true,
+		hidden: true,
+	},
+);
 program.disableGlobalOption('--quiet');
 program.disableGlobalOption('--no-color');
 

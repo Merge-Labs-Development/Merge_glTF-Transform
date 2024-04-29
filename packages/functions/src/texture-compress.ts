@@ -1,4 +1,13 @@
-import { BufferUtils, Document, ImageUtils, Texture, TextureChannel, Transform, vec2 } from '@gltf-transform/core';
+import {
+	BufferUtils,
+	Document,
+	FileUtils,
+	ImageUtils,
+	Texture,
+	TextureChannel,
+	Transform,
+	vec2,
+} from '@gltf-transform/core';
 import { EXTTextureAVIF, EXTTextureWebP } from '@gltf-transform/extensions';
 import { getTextureChannelMask } from './list-texture-channels.js';
 import { listTextureSlots } from './list-texture-slots.js';
@@ -76,6 +85,13 @@ export interface TextureCompressOptions {
 	 * Sharp encoder is provided. Default: false.
 	 */
 	nearLossless?: boolean;
+
+	/**
+	 * Attempts to avoid processing images that could exceed memory or other other
+	 * limits, throwing an error instead. Default: true.
+	 * @experimental
+	 */
+	limitInputPixels?: boolean;
 }
 
 export type CompressTextureOptions = Omit<TextureCompressOptions, 'pattern' | 'formats' | 'slots'>;
@@ -90,6 +106,7 @@ export const TEXTURE_COMPRESS_DEFAULTS: Omit<TextureCompressOptions, 'resize' | 
 	effort: undefined,
 	lossless: false,
 	nearLossless: false,
+	limitInputPixels: true,
 };
 
 /**
@@ -243,6 +260,7 @@ export async function compressTexture(texture: Texture, _options: CompressTextur
 	const options = { ...TEXTURE_COMPRESS_DEFAULTS, ..._options } as Required<CompressTextureOptions>;
 	const encoder = options.encoder as typeof sharp | null;
 
+	const srcURI = texture.getURI();
 	const srcFormat = getFormat(texture);
 	const dstFormat = options.targetFormat || srcFormat;
 	const srcMimeType = texture.getMimeType();
@@ -264,7 +282,7 @@ export async function compressTexture(texture: Texture, _options: CompressTextur
 		texture.setImage(dstImage);
 	} else {
 		// Overwrite, then update path and MIME type if src/dst formats differ.
-		const srcExtension = ImageUtils.mimeTypeToExtension(srcMimeType);
+		const srcExtension = srcURI ? FileUtils.extension(srcURI) : ImageUtils.mimeTypeToExtension(srcMimeType);
 		const dstExtension = ImageUtils.mimeTypeToExtension(dstMimeType);
 		const dstURI = texture.getURI().replace(new RegExp(`\\.${srcExtension}$`), `.${dstExtension}`);
 		texture.setImage(dstImage).setMimeType(dstMimeType).setURI(dstURI);
@@ -309,18 +327,15 @@ async function _encodeWithSharp(
 			break;
 	}
 
-	const instance = encoder(srcImage).toFormat(dstFormat, encoderOptions);
+	const limitInputPixels = options.limitInputPixels;
+	const instance = encoder(srcImage, { limitInputPixels }).toFormat(dstFormat, encoderOptions);
 
 	if (options.resize) {
 		const srcSize = ImageUtils.getSize(srcImage, _srcMimeType)!;
 		const dstSize = Array.isArray(options.resize)
 			? fitWithin(srcSize, options.resize)
 			: fitPowerOfTwo(srcSize, options.resize);
-		instance.resize(dstSize[0], dstSize[1], {
-			withoutEnlargement: Array.isArray(options.resize),
-			fit: Array.isArray(options.resize) ? 'inside' : 'fill',
-			kernel: options.resizeFilter,
-		});
+		instance.resize(dstSize[0], dstSize[1], { fit: 'fill', kernel: options.resizeFilter });
 	}
 
 	return BufferUtils.toView(await instance.toBuffer());

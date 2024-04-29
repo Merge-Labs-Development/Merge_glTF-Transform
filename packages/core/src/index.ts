@@ -22,9 +22,10 @@ export {
 	Skin,
 	Texture,
 	TextureInfo,
+	PropertyResolver,
 	COPY_IDENTITY,
 } from './properties/index.js';
-export { Graph, GraphEdge } from 'property-graph';
+export { Graph, GraphEdge, Ref, RefList, RefSet, RefMap } from 'property-graph';
 export { DenoIO, PlatformIO, NodeIO, WebIO, ReaderContext, WriterContext } from './io/index.js';
 export {
 	BufferUtils,

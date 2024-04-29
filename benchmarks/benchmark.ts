@@ -1,5 +1,7 @@
 import { Bench } from 'tinybench';
 import { tasks } from './tasks/index.js';
+import { printReport, readReport, updateReport, writeReport } from './report.js';
+import { VERSION } from '@gltf-transform/core';
 
 /**
  * DEVELOPER NOTES:
@@ -9,15 +11,29 @@ import { tasks } from './tasks/index.js';
  * Options on the Suite appear to do nothing. Switched to tinybench.
  */
 
-const filter = process.argv[2];
+const argv = process.argv;
+const parseFlag = (flag: string, value: string): string => {
+	if (!value || value.startsWith('-')) {
+		throw new Error(`Usage: ${flag} <value>`);
+	}
+	return value;
+};
+const flags = {
+	filter: argv.includes('--filter') ? parseFlag('--filter', argv[argv.indexOf('--filter') + 1]) : false,
+	past: argv.includes('--past'),
+	table: argv.includes('--table'),
+	report: argv.includes('--report') ? parseFlag('--report', argv[argv.indexOf('--report') + 1]) : false,
+	reportVersion: argv.includes('--report-version'),
+	print: argv.includes('--print'),
+};
 
 /******************************************************************************
- * BENCHMARK SUITE
+ * CREATE BENCHMARK SUITE
  */
 
 const bench = new Bench({ time: 1000 });
 for (const [title, fn, options] of tasks) {
-	if (!filter || title.startsWith(filter)) {
+	if (!flags.filter || title.startsWith(flags.filter as string)) {
 		bench.add(title, fn, options);
 	}
 }
@@ -26,23 +42,28 @@ for (const [title, fn, options] of tasks) {
  * EXECUTE
  */
 
-await bench.run();
+const version = flags.reportVersion ? VERSION : flags.report || 'dev';
+const report = await readReport();
 
-console.table(bench.table());
+if (flags.past === false) {
+	await bench.run();
+	await updateReport(report, bench, version as string);
+}
 
-// interface IResult {
-// 	name: string;
-// 	value: number;
-// 	unit: string;
-// }
+/******************************************************************************
+ * REPORT
+ */
 
-// const results: IResult[] = [];
-// for (const task of bench.tasks) {
-// 	results.push({
-// 		name: task.name,
-// 		value: Number(task.result!.mean.toFixed(4)),
-// 		unit: 'ms',
-// 	});
-// }
+if (flags.table && flags.past === false) {
+	console.table(bench.table());
+} else if (flags.table) {
+	console.warn('Skipping table, bench did not run');
+}
 
-// console.log(JSON.stringify(results, null, 2));
+if (flags.print) {
+	await printReport(report);
+}
+
+if (flags.report || flags.reportVersion) {
+	await writeReport(report);
+}
