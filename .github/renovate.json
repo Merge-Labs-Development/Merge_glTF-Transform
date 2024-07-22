@@ -2,8 +2,8 @@
 	"extends": ["github>donmccurdy/renovate-config"],
 	"packageRules": [
 		{
-			"description": "Waiting for https://github.com/lovell/sharp/issues?q=is%3Aissue+is%3Aopen+label%3Ainstallation+ to settle",
-			"matchPackageNames": ["sharp"],
+			"description": "Requires updates to tweakpane-plugin-thumbnail-list",
+			"matchPackageNames": ["tweakpane"],
 			"enabled": false
 		}
 	]

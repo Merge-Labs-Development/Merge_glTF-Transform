@@ -23,8 +23,10 @@ import { max, min, scale, transformMat4 } from 'gl-matrix/vec3';
 import { InstancedMesh, KHRMeshQuantization } from '@gltf-transform/extensions';
 import type { Volume } from '@gltf-transform/extensions';
 import { prune } from './prune.js';
-import { createTransform } from './utils.js';
+import { assignDefaults, createTransform } from './utils.js';
 import { sortPrimitiveWeights } from './sort-primitive-weights.js';
+import { getPrimitiveVertexCount, VertexCountMethod } from './get-vertex-count.js';
+import { compactPrimitive } from './compact-primitive.js';
 
 const NAME = 'quantize';
 
@@ -99,15 +101,14 @@ export const QUANTIZE_DEFAULTS: Required<Omit<QuantizeOptions, 'patternTargets'>
  * @category Transforms
  */
 export function quantize(_options: QuantizeOptions = QUANTIZE_DEFAULTS): Transform {
-	const options = { ...QUANTIZE_DEFAULTS, ..._options } as Required<QuantizeOptions>;
+	const options = assignDefaults(QUANTIZE_DEFAULTS, {
+		patternTargets: _options.pattern || QUANTIZE_DEFAULTS.pattern,
+		..._options,
+	});
 
-	options.patternTargets = options.patternTargets || options.pattern;
-
-	return createTransform(NAME, async (doc: Document): Promise<void> => {
-		const logger = doc.getLogger();
-		const root = doc.getRoot();
-
-		doc.createExtension(KHRMeshQuantization).setRequired(true);
+	return createTransform(NAME, async (document: Document): Promise<void> => {
+		const logger = document.getLogger();
+		const root = document.getRoot();
 
 		// Compute vertex position quantization volume.
 		let nodeTransform: VectorTransform<vec3> | undefined = undefined;
@@ -116,26 +117,39 @@ export function quantize(_options: QuantizeOptions = QUANTIZE_DEFAULTS): Transfo
 		}
 
 		// Quantize mesh primitives.
-		for (const mesh of doc.getRoot().listMeshes()) {
+		for (const mesh of document.getRoot().listMeshes()) {
 			if (options.quantizationVolume === 'mesh') {
 				nodeTransform = getNodeTransform(getPositionQuantizationVolume(mesh));
 			}
 
 			if (nodeTransform && options.pattern.test('POSITION')) {
-				transformMeshParents(doc, mesh, nodeTransform);
+				transformMeshParents(document, mesh, nodeTransform);
 				transformMeshMaterials(mesh, 1 / nodeTransform.scale);
 			}
 
 			for (const prim of mesh.listPrimitives()) {
-				quantizePrimitive(doc, prim, nodeTransform!, options);
+				const renderCount = getPrimitiveVertexCount(prim, VertexCountMethod.RENDER);
+				const uploadCount = getPrimitiveVertexCount(prim, VertexCountMethod.UPLOAD);
+				if (renderCount < uploadCount / 2) {
+					compactPrimitive(prim);
+				}
+				quantizePrimitive(document, prim, nodeTransform!, options);
 				for (const target of prim.listTargets()) {
-					quantizePrimitive(doc, target, nodeTransform!, options);
+					quantizePrimitive(document, target, nodeTransform!, options);
 				}
 			}
 		}
 
+		const needsExtension = root
+			.listMeshes()
+			.flatMap((mesh) => mesh.listPrimitives())
+			.some(isQuantizedPrimitive);
+		if (needsExtension) {
+			document.createExtension(KHRMeshQuantization).setRequired(true);
+		}
+
 		if (options.cleanup) {
-			await doc.transform(
+			await document.transform(
 				prune({
 					propertyTypes: [PropertyType.ACCESSOR, PropertyType.SKIN, PropertyType.MATERIAL],
 					keepAttributes: true,
@@ -193,7 +207,7 @@ function quantizePrimitive(
 
 		// Quantize the vertex attribute.
 		quantizeAttribute(dstAttribute, ctor, bits);
-		prim.swap(srcAttribute, dstAttribute);
+		prim.setAttribute(semantic, dstAttribute);
 	}
 
 	// Normalize skinning weights.
@@ -485,6 +499,37 @@ function getPositionQuantizationVolume(mesh: Mesh): bbox {
 	}
 
 	return bbox;
+}
+
+function isQuantizedAttribute(semantic: string, attribute: Accessor): boolean {
+	// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes-overview
+	const componentSize = attribute.getComponentSize();
+	if (semantic === 'POSITION') return componentSize < 4;
+	if (semantic === 'NORMAL') return componentSize < 4;
+	if (semantic === 'TANGENT') return componentSize < 4;
+	if (semantic.startsWith('TEXCOORD_')) {
+		const componentType = attribute.getComponentType();
+		const normalized = attribute.getNormalized();
+		return (
+			componentSize < 4 &&
+			!(normalized && componentType === Accessor.ComponentType.UNSIGNED_BYTE) &&
+			!(normalized && componentType === Accessor.ComponentType.UNSIGNED_SHORT)
+		);
+	}
+	return false;
+}
+
+function isQuantizedPrimitive(prim: Primitive | PrimitiveTarget): boolean {
+	for (const semantic of prim.listSemantics()) {
+		const attribute = prim.getAttribute('POSITION')!;
+		if (isQuantizedAttribute(semantic, attribute)) {
+			return true;
+		}
+	}
+	if (prim.propertyType === PropertyType.PRIMITIVE) {
+		return prim.listTargets().some(isQuantizedPrimitive);
+	}
+	return false;
 }
 
 /** Computes total min and max of all Accessors in a list. */

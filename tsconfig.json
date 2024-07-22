@@ -6,7 +6,8 @@
 			"@gltf-transform/extensions": ["./packages/extensions/"],
 			"@gltf-transform/functions": ["./packages/functions/"],
 			"@gltf-transform/cli": ["./packages/cli/"],
-			"@gltf-transform/test-utils": ["./packages/test-utils/"]
+			"@gltf-transform/test-utils": ["./packages/test-utils/"],
+			"@gltf-transform/view": ["./packages/view/"]
 		},
 		"esModuleInterop": true,
 		"moduleResolution": "nodenext",
@@ -15,7 +16,6 @@
 		"module": "nodenext",
 		"declaration": true,
 		"stripInternal": true,
-		"typeRoots": ["node_modules/@types"],
 
 		// Components of "strict" mode.
 		"alwaysStrict": true,

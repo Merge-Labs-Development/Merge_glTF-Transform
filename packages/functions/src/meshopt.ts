@@ -3,7 +3,7 @@ import { EXTMeshoptCompression } from '@gltf-transform/extensions';
 import type { MeshoptEncoder } from 'meshoptimizer';
 import { reorder } from './reorder.js';
 import { QUANTIZE_DEFAULTS, QuantizeOptions, quantize } from './quantize.js';
-import { createTransform } from './utils.js';
+import { assignDefaults, createTransform } from './utils.js';
 
 export interface MeshoptOptions extends Omit<QuantizeOptions, 'pattern' | 'patternTargets'> {
 	encoder: unknown;
@@ -43,7 +43,7 @@ const NAME = 'meshopt';
  * @category Transforms
  */
 export function meshopt(_options: MeshoptOptions): Transform {
-	const options = { ...MESHOPT_DEFAULTS, ..._options } as Required<MeshoptOptions>;
+	const options = assignDefaults(MESHOPT_DEFAULTS, _options);
 	const encoder = options.encoder as typeof MeshoptEncoder | undefined;
 
 	if (!encoder) {
@@ -55,6 +55,10 @@ export function meshopt(_options: MeshoptOptions): Transform {
 		let patternTargets: RegExp;
 		let quantizeNormal = options.quantizeNormal;
 
+		if (document.getRoot().listAccessors().length === 0) {
+			return;
+		}
+
 		// IMPORTANT: Vertex attributes should be quantized in 'high' mode IFF they are
 		// _not_ filtered in 'packages/extensions/src/ext-meshopt-compression/encoder.ts'.
 		// Note that normals and tangents use octahedral filters, but _morph_ normals
@@ -64,8 +68,8 @@ export function meshopt(_options: MeshoptOptions): Transform {
 			pattern = /.*/;
 			patternTargets = /.*/;
 		} else {
-			pattern = /^(POSITION|TEXCOORD|JOINTS|WEIGHTS)(_\d+)?$/;
-			patternTargets = /^(POSITION|TEXCOORD|JOINTS|WEIGHTS|NORMAL|TANGENT)(_\d+)?$/;
+			pattern = /^(POSITION|TEXCOORD|JOINTS|WEIGHTS|COLOR)(_\d+)?$/;
+			patternTargets = /^(POSITION|TEXCOORD|JOINTS|WEIGHTS|COLOR|NORMAL|TANGENT)(_\d+)?$/;
 			quantizeNormal = Math.min(quantizeNormal, 8); // See meshopt::getMeshoptFilter.
 		}
 

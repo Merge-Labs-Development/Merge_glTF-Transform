@@ -26,11 +26,13 @@ export enum VertexCountMethod {
 	RENDER = 'render',
 
 	/**
-	 * Expected number of vertices proceessed by the vertex shader for one render
-	 * pass, assuming a 100% hit ratio on the vertex cache. Assumes vertex attributes
-	 * have been optimized for locality of reused references (see {@link reorder}).
-	 * Typical GPU vertex caches are small, holding 16-32 vertices, and rarely
-	 * achieve 100% hit ratios in practice.
+	 * Expected number of vertices processed by the vertex shader for one render
+	 * pass, assuming an Average Transform to Vertex Ratio (ATVR) of 1. Approaching
+	 * this result requires optimizing for locality of vertex references (see
+	 * {@link reorder}).
+	 *
+	 * References:
+	 * - [ACMR and ATVR](https://www.realtimerendering.com/blog/acmr-and-atvr/), Real-Time Rendering
 	 */
 	RENDER_CACHED = 'render-cached',
 
@@ -40,15 +42,15 @@ export enum VertexCountMethod {
 	 * attributes are pre-processed to a known buffer layout, and the client is
 	 * optimized for that buffer layout, this total will be optimistic.
 	 */
-	GPU = 'gpu',
+	UPLOAD = 'upload',
 
 	/**
 	 * Expected number of vertices uploaded to the GPU, assuming that a client
 	 * uploads each unique {@link Primitive} individually, duplicating vertex
 	 * attribute {@link Accessor Accessors} shared by multiple primitives, but
-	 * never uploading the same mesh or primitive to GPU memory more than once.
+	 * never uploading the same Mesh or Primitive to GPU memory more than once.
 	 */
-	GPU_NAIVE = 'gpu-naive',
+	UPLOAD_NAIVE = 'upload-naive',
 
 	/**
 	 * Total number of unique vertices represented, considering all attributes of
@@ -57,41 +59,43 @@ export enum VertexCountMethod {
 	 * optimization opportunities.
 	 *
 	 * @hidden TODO(feat): Not yet implemented.
+	 * @internal
 	 */
 	DISTINCT = 'distinct',
 
 	/**
-	 * Total number of unique vertices represented, considering aonly vertex
+	 * Total number of unique vertices represented, considering only vertex
 	 * positions, and removing any duplicates. Has no direct relationship to
 	 * runtime characteristics, but may be helpful in identifying asset
 	 * optimization opportunities.
 	 *
 	 * @hidden TODO(feat): Not yet implemented.
+	 * @internal
 	 */
 	DISTINCT_POSITION = 'distinct-position',
 
 	/**
-	 * Number of vertex positions never used by any mesh primitive. If all
-	 * vertices are unused, this total will match `'gpu'`.
+	 * Number of vertex positions never used by any {@link Primitive}. If all
+	 * vertices are unused, this total will match `UPLOAD`.
 	 */
 	UNUSED = 'unused',
 }
 
 /**
- * Computes total number of vertices in a {@link Scene}, calculated by the
- * specified method. Totals for the scene will not necessarily match the sum
+ * Computes total number of vertices in a {@link Scene}, by the
+ * specified method. Totals for the Scene will not necessarily match the sum
  * of the totals for each {@link Mesh} or {@link Primitive} within it. See
- * {@link VertexCountMethod} for further information.
+ * {@link VertexCountMethod} for available methods.
  */
 export function getSceneVertexCount(scene: Scene, method: VertexCountMethod): number {
 	return _getSubtreeVertexCount(scene, method);
 }
 
 /**
- * Computes total number of vertices in a {@link Node}, calculated by the
+ * Computes total number of vertices in a {@link Node}, by the
  * specified method. Totals for the node will not necessarily match the sum
  * of the totals for each {@link Mesh} or {@link Primitive} within it. See
- * {@link VertexCountMethod} for further information.
+ * {@link VertexCountMethod} for available methods.
  */
 export function getNodeVertexCount(node: Node | Scene, method: VertexCountMethod): number {
 	return _getSubtreeVertexCount(node, method);
@@ -127,9 +131,9 @@ function _getSubtreeVertexCount(node: Node | Scene, method: VertexCountMethod): 
 				_sum(nonInstancedMeshes.map((mesh) => getMeshVertexCount(mesh, method))) +
 				_sum(instancedMeshes.map(([batch, mesh]) => batch * getMeshVertexCount(mesh, method)))
 			);
-		case VertexCountMethod.GPU_NAIVE:
+		case VertexCountMethod.UPLOAD_NAIVE:
 			return _sum(uniqueMeshes.map((mesh) => getMeshVertexCount(mesh, method)));
-		case VertexCountMethod.GPU:
+		case VertexCountMethod.UPLOAD:
 			return _sum(uniquePositions.map((attribute) => attribute.getCount()));
 		case VertexCountMethod.DISTINCT:
 		case VertexCountMethod.DISTINCT_POSITION:
@@ -142,10 +146,10 @@ function _getSubtreeVertexCount(node: Node | Scene, method: VertexCountMethod): 
 }
 
 /**
- * Computes total number of vertices in a {@link Mesh}, calculated by the
- * specified method. Totals for the mesh will not necessarily match the sum
+ * Computes total number of vertices in a {@link Mesh}, by the
+ * specified method. Totals for the Mesh will not necessarily match the sum
  * of the totals for each {@link Primitive} within it. See
- * {@link VertexCountMethod} for further information.
+ * {@link VertexCountMethod} for available methods.
  */
 export function getMeshVertexCount(mesh: Mesh, method: VertexCountMethod): number {
 	const prims = mesh.listPrimitives();
@@ -155,9 +159,9 @@ export function getMeshVertexCount(mesh: Mesh, method: VertexCountMethod): numbe
 	switch (method) {
 		case VertexCountMethod.RENDER:
 		case VertexCountMethod.RENDER_CACHED:
-		case VertexCountMethod.GPU_NAIVE:
+		case VertexCountMethod.UPLOAD_NAIVE:
 			return _sum(prims.map((prim) => getPrimitiveVertexCount(prim, method)));
-		case VertexCountMethod.GPU:
+		case VertexCountMethod.UPLOAD:
 			return _sum(uniquePositions.map((attribute) => attribute.getCount()));
 		case VertexCountMethod.DISTINCT:
 		case VertexCountMethod.DISTINCT_POSITION:
@@ -170,8 +174,8 @@ export function getMeshVertexCount(mesh: Mesh, method: VertexCountMethod): numbe
 }
 
 /**
- * Computes total number of vertices in a {@link Primitive}, calculated by the
- * specified method. See {@link VertexCountMethod} for further information.
+ * Computes total number of vertices in a {@link Primitive}, by the
+ * specified method. See {@link VertexCountMethod} for available methods.
  */
 export function getPrimitiveVertexCount(prim: Primitive, method: VertexCountMethod): number {
 	const position = prim.getAttribute('POSITION')!;
@@ -182,8 +186,8 @@ export function getPrimitiveVertexCount(prim: Primitive, method: VertexCountMeth
 			return indices ? indices.getCount() : position.getCount();
 		case VertexCountMethod.RENDER_CACHED:
 			return indices ? new Set(indices.getArray()).size : position.getCount();
-		case VertexCountMethod.GPU_NAIVE:
-		case VertexCountMethod.GPU:
+		case VertexCountMethod.UPLOAD_NAIVE:
+		case VertexCountMethod.UPLOAD:
 			return position.getCount();
 		case VertexCountMethod.DISTINCT:
 		case VertexCountMethod.DISTINCT_POSITION:

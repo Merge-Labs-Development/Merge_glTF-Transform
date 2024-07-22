@@ -15,22 +15,26 @@ jobs:
                 node-version: [v18, v20]
         env:
             CI: true
+            LINT: ${{ matrix.node-version == 'v20' && true || false }}
         steps:
             # Setup.
-            - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+            - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
             - name: Use Node.js ${{ matrix.node-version }}
               uses: actions/setup-node@v4
               with:
                   node-version: ${{ matrix.node-version }}
-                  cache: yarn
+                  # TODO(cleanup): https://github.com/actions/setup-node/issues/1027
+                  # cache: yarn
 
             # Build.
-            - run: yarn install --frozen-lockfile
+            - run: corepack enable
+            - run: yarn install --immutable
             - run: yarn dist
 
             # Test.
             - run: yarn test
             - run: yarn lint
+              if: ${{ env.LINT == 'true' }}
 
     #############################################################################
     # DENO
@@ -41,7 +45,7 @@ jobs:
             NODE_VERSION: v18
         steps:
             # Setup.
-            - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+            - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
             - uses: denoland/setup-deno@v1
               with:
                   deno-version: v1.x
@@ -49,10 +53,12 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
-                  cache: yarn
+                  # TODO(cleanup): https://github.com/actions/setup-node/issues/1027
+                  # cache: yarn
 
             # Build.
-            - run: yarn install --frozen-lockfile
+            - run: corepack enable
+            - run: yarn install --immutable
             - run: yarn dist
 
             # Test.
@@ -67,15 +73,17 @@ jobs:
             NODE_VERSION: v18
         steps:
             # Setup.
-            - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+            - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
             - name: Use Node.js ${{ env.NODE_VERSION }}
               uses: actions/setup-node@v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
-                  cache: yarn
+                  # TODO(cleanup): https://github.com/actions/setup-node/issues/1027
+                  # cache: yarn
 
             # Build.
-            - run: yarn install --frozen-lockfile
+            - run: corepack enable
+            - run: yarn install --immutable
             - run: yarn dist
 
             # Coverage.
@@ -94,14 +102,16 @@ jobs:
             NODE_VERSION: 18.x
         steps:
             # Setup.
-            - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+            - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
             - name: Use Node.js ${{ env.NODE_VERSION }}
               uses: actions/setup-node@v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
-                  cache: yarn
+                  # TODO(cleanup): https://github.com/actions/setup-node/issues/1027
+                  # cache: yarn
 
             # Build.
+            - run: corepack enable
             # See: https://github.com/yarnpkg/yarn/issues/4890
-            - run: yarn install --frozen-lockfile --network-timeout 100000
+            - run: yarn install --immutable --network-timeout 100000
             - run: yarn dist

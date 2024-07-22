@@ -1,6 +1,7 @@
 export * from './center.js';
 export * from './clear-node-parent.js';
 export * from './clear-node-transform.js';
+export * from './compact-primitive.js';
 export * from './convert-primitive-mode.js';
 export * from './dedup.js';
 export { dequantize, dequantizePrimitive, DequantizeOptions } from './dequantize.js';
@@ -43,7 +44,14 @@ export * from './transform-mesh.js';
 export * from './transform-primitive.js';
 export * from './unlit.js';
 export * from './unpartition.js';
-export { getGLPrimitiveCount, isTransformPending, createTransform, fitWithin, fitPowerOfTwo } from './utils.js';
+export {
+	assignDefaults,
+	getGLPrimitiveCount,
+	isTransformPending,
+	createTransform,
+	fitWithin,
+	fitPowerOfTwo,
+} from './utils.js';
 export * from './unweld.js';
 export * from './vertex-color-space.js';
 export * from './weld.js';

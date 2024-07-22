@@ -5,6 +5,7 @@ import {
 	deepListAttributes,
 	deepSwapAttribute,
 	shallowCloneAccessor,
+	assignDefaults,
 } from './utils.js';
 import { weld } from './weld.js';
 import type { MeshoptSimplifier } from 'meshoptimizer';
@@ -13,7 +14,8 @@ import { prune } from './prune.js';
 import { dequantizeAttributeArray } from './dequantize.js';
 import { unweldPrimitive } from './unweld.js';
 import { convertPrimitiveToTriangles } from './convert-primitive-mode.js';
-import { remapAttribute } from './remap-primitive.js';
+import { compactAttribute, compactPrimitive } from './compact-primitive.js';
+import { VertexCountMethod, getPrimitiveVertexCount } from './get-vertex-count.js';
 
 const NAME = 'simplify';
 
@@ -74,7 +76,7 @@ export const SIMPLIFY_DEFAULTS: Required<Omit<SimplifyOptions, 'simplifier'>> = 
  * import { MeshoptSimplifier } from 'meshoptimizer';
  *
  * await document.transform(
- *   weld({ tolerance: 0.0001 }),
+ *   weld({}),
  *   simplify({ simplifier: MeshoptSimplifier, ratio: 0.75, error: 0.001 })
  * );
  * ```
@@ -85,7 +87,7 @@ export const SIMPLIFY_DEFAULTS: Required<Omit<SimplifyOptions, 'simplifier'>> = 
  * @category Transforms
  */
 export function simplify(_options: SimplifyOptions): Transform {
-	const options = { ...SIMPLIFY_DEFAULTS, ..._options } as Required<SimplifyOptions>;
+	const options = assignDefaults(SIMPLIFY_DEFAULTS, _options);
 
 	const simplifier = options.simplifier as typeof MeshoptSimplifier | undefined;
 
@@ -107,10 +109,14 @@ export function simplify(_options: SimplifyOptions): Transform {
 				const mode = prim.getMode();
 				if (mode === TRIANGLES || mode === TRIANGLE_STRIP || mode === TRIANGLE_FAN) {
 					simplifyPrimitive(prim, options);
-					if (prim.getIndices()!.getCount() === 0) prim.dispose();
+					if (getPrimitiveVertexCount(prim, VertexCountMethod.RENDER) === 0) {
+						prim.dispose();
+					}
 				} else if (prim.getMode() === POINTS && !!simplifier.simplifyPoints) {
 					simplifyPrimitive(prim, options);
-					if (prim.getAttribute('POSITION')!.getCount() === 0) prim.dispose();
+					if (getPrimitiveVertexCount(prim, VertexCountMethod.RENDER) === 0) {
+						prim.dispose();
+					}
 				} else {
 					numUnsupported++;
 				}
@@ -162,15 +168,21 @@ export function simplifyPrimitive(prim: Primitive, _options: SimplifyOptions): P
 			break;
 	}
 
+	// (1) If primitive draws <50% of its vertex stream, compact before simplification.
+
+	const srcVertexCount = getPrimitiveVertexCount(prim, VertexCountMethod.UPLOAD);
+	const srcIndexCount = getPrimitiveVertexCount(prim, VertexCountMethod.RENDER);
+	if (srcIndexCount < srcVertexCount / 2) {
+		compactPrimitive(prim);
+	}
+
 	const position = prim.getAttribute('POSITION')!;
 	const srcIndices = prim.getIndices()!;
-	const srcIndexCount = srcIndices.getCount();
-	const srcVertexCount = position.getCount();
 
 	let positionArray = position.getArray()!;
 	let indicesArray = srcIndices.getArray()!;
 
-	// (1) Gather attributes and indices in Meshopt-compatible format.
+	// (2) Gather attributes and indices in Meshopt-compatible format.
 
 	if (!(positionArray instanceof Float32Array)) {
 		positionArray = dequantizeAttributeArray(positionArray, position.getComponentType(), position.getNormalized());
@@ -179,7 +191,7 @@ export function simplifyPrimitive(prim: Primitive, _options: SimplifyOptions): P
 		indicesArray = new Uint32Array(indicesArray);
 	}
 
-	// (2) Run simplification.
+	// (3) Run simplification.
 
 	const targetCount = Math.floor((options.ratio * srcIndexCount) / 3) * 3;
 	const flags = options.lockBorder ? ['LockBorder'] : [];
@@ -193,25 +205,18 @@ export function simplifyPrimitive(prim: Primitive, _options: SimplifyOptions): P
 		flags as 'LockBorder'[],
 	);
 
-	const [remap, unique] = simplifier.compactMesh(dstIndicesArray);
+	// (4) Assign subset of indexes; compact primitive.
 
-	logger.debug(`${NAME}: ${formatDeltaOp(position.getCount(), unique)} vertices, error: ${error.toFixed(4)}.`);
+	prim.setIndices(shallowCloneAccessor(document, srcIndices).setArray(dstIndicesArray));
+	if (srcIndices.listParents().length === 1) srcIndices.dispose();
+	compactPrimitive(prim);
 
-	// (3) Write vertex attributes.
-
-	for (const srcAttribute of deepListAttributes(prim)) {
-		const dstAttribute = shallowCloneAccessor(document, srcAttribute);
-		remapAttribute(dstAttribute, remap, unique);
-		deepSwapAttribute(prim, srcAttribute, dstAttribute);
-		if (srcAttribute.listParents().length === 1) srcAttribute.dispose();
+	const dstVertexCount = getPrimitiveVertexCount(prim, VertexCountMethod.UPLOAD);
+	if (dstVertexCount <= 65534) {
+		prim.getIndices()!.setArray(new Uint16Array(prim.getIndices()!.getArray()!));
 	}
 
-	// (4) Write indices.
-
-	const dstIndices = shallowCloneAccessor(document, srcIndices);
-	dstIndices.setArray(srcVertexCount <= 65534 ? new Uint16Array(dstIndicesArray) : dstIndicesArray);
-	prim.setIndices(dstIndices);
-	if (srcIndices.listParents().length === 1) srcIndices.dispose();
+	logger.debug(`${NAME}: ${formatDeltaOp(srcVertexCount, dstVertexCount)} vertices, error: ${error.toFixed(4)}.`);
 
 	return prim;
 }
@@ -255,7 +260,7 @@ function _simplifyPoints(document: Document, prim: Primitive, options: Required<
 
 	for (const srcAttribute of deepListAttributes(prim)) {
 		const dstAttribute = shallowCloneAccessor(document, srcAttribute);
-		remapAttribute(dstAttribute, remap, unique);
+		compactAttribute(srcAttribute, null, remap, dstAttribute, unique);
 		deepSwapAttribute(prim, srcAttribute, dstAttribute);
 		if (srcAttribute.listParents().length === 1) srcAttribute.dispose();
 	}

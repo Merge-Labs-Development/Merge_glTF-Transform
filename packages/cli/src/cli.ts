@@ -253,6 +253,10 @@ commands or using the scripting API.
 		validator: Validator.NUMBER,
 		default: INSTANCE_DEFAULTS.min,
 	})
+	.option('--meshopt-level <level>', 'Meshopt compression level.', {
+		validator: ['medium', 'high'],
+		default: 'high',
+	})
 	.option('--palette <bool>', 'Creates palette textures and merges materials.', {
 		validator: Validator.BOOLEAN,
 		default: true,
@@ -340,6 +344,7 @@ commands or using the scripting API.
 		const opts = options as {
 			instance: boolean;
 			instanceMin: number;
+			meshoptLevel: 'medium' | 'high';
 			palette: boolean;
 			paletteMin: number;
 			simplify: boolean;
@@ -362,7 +367,16 @@ commands or using the scripting API.
 		const transforms: Transform[] = [dedup()];
 
 		if (opts.instance) transforms.push(instance({ min: opts.instanceMin }));
-		if (opts.palette) transforms.push(palette({ min: opts.paletteMin }));
+
+		if (opts.palette) {
+			transforms.push(
+				palette({
+					min: opts.paletteMin,
+					keepAttributes: !opts.prune || !opts.pruneAttributes,
+				}),
+			);
+		}
+
 		if (opts.flatten) transforms.push(flatten());
 		if (opts.join) transforms.push(join());
 		if (opts.weld) transforms.push(weld());
@@ -436,7 +450,7 @@ commands or using the scripting API.
 		if (opts.compress === 'draco') {
 			transforms.push(draco());
 		} else if (opts.compress === 'meshopt') {
-			transforms.push(meshopt({ encoder: MeshoptEncoder }));
+			transforms.push(meshopt({ encoder: MeshoptEncoder, level: opts.meshoptLevel }));
 		} else if (opts.compress === 'quantize') {
 			transforms.push(quantize());
 		}
@@ -1719,11 +1733,11 @@ file sizes.
 		Session.create(io, logger, args.input, args.output).transform(sparse(options as unknown as SparseOptions)),
 	);
 
-program.option('--allow-http', 'Allows reads from HTTP requests.', {
+program.option('--allow-net', 'Allows reads from network requests.', {
 	default: false,
 	validator: Validator.BOOLEAN,
 	action: ({ options }) => {
-		if (options.allowHttp) io.setAllowHTTP(true);
+		if (options.allowNet) io.setAllowNetwork(true);
 	},
 });
 program.option('--vertex-layout <layout>', 'Vertex buffer layout preset.', {
