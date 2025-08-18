@@ -1,7 +1,7 @@
 <script lang="ts">
-	import type { PageData } from './$types';
-	import { Class, Interface, Enum, Function } from '@greendoc/svelte';
-	export let data: PageData;
+import { Class, Enum, Function, Interface } from '@greendoc/svelte';
+import type { PageData } from './$types';
+export let data: PageData;
 </script>
 
 <section class="greendoc-panel" style="padding-bottom: 0;">

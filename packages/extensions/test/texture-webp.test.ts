@@ -1,8 +1,8 @@
-import test from 'ava';
-import { BufferUtils, Document, GLTF, ImageUtils, JSONDocument, NodeIO } from '@gltf-transform/core';
+import { BufferUtils, Document, type GLTF, ImageUtils, type JSONDocument, NodeIO } from '@gltf-transform/core';
 import { EXTTextureWebP } from '@gltf-transform/extensions';
-import path, { dirname } from 'path';
+import test from 'ava';
 import fs from 'fs';
+import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const WRITER_OPTIONS = { basename: 'extensionTest' };

@@ -1,5 +1,15 @@
-import { Document, ILogger, MathUtils, Mesh, Node, Primitive, Transform, vec3, vec4 } from '@gltf-transform/core';
-import { InstancedMesh, EXTMeshGPUInstancing } from '@gltf-transform/extensions';
+import {
+	type Document,
+	type ILogger,
+	MathUtils,
+	type Mesh,
+	type Node,
+	type Primitive,
+	type Transform,
+	type vec3,
+	type vec4,
+} from '@gltf-transform/core';
+import { EXTMeshGPUInstancing, type InstancedMesh } from '@gltf-transform/extensions';
 import { assignDefaults, createTransform } from './utils.js';
 
 const NAME = 'instance';
@@ -14,7 +24,7 @@ export const INSTANCE_DEFAULTS: Required<InstanceOptions> = {
 };
 
 /**
- * Creates GPU instances (with `EXT_mesh_gpu_instancing`) for shared {@link Mesh} references. In
+ * Creates GPU instances (with {@link EXTMeshGPUInstancing}) for shared {@link Mesh} references. In
  * engines supporting the extension, reused Meshes will be drawn with GPU instancing, greatly
  * reducing draw calls and improving performance in many cases. If you're not sure that identical
  * Meshes share vertex data and materials ("linked duplicates"), run {@link dedup} first to link them.
@@ -56,6 +66,7 @@ export function instance(_options: InstanceOptions = INSTANCE_DEFAULTS): Transfo
 			scene.traverse((node) => {
 				const mesh = node.getMesh();
 				if (!mesh) return;
+				if (node.getExtension('EXT_mesh_gpu_instancing')) return;
 				meshInstances.set(mesh, (meshInstances.get(mesh) || new Set<Node>()).add(node));
 			});
 

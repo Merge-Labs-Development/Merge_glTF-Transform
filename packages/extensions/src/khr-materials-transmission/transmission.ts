@@ -1,9 +1,9 @@
 import {
 	ExtensionProperty,
-	IProperty,
-	Nullable,
+	type IProperty,
+	type Nullable,
 	PropertyType,
-	Texture,
+	type Texture,
 	TextureChannel,
 	TextureInfo,
 } from '@gltf-transform/core';
@@ -21,7 +21,7 @@ const { R } = TextureChannel;
  * Defines optical transmission on a PBR {@link Material}. See {@link KHRMaterialsTransmission}.
  */
 export class Transmission extends ExtensionProperty<ITransmission> {
-	public static EXTENSION_NAME = KHR_MATERIALS_TRANSMISSION;
+	public static EXTENSION_NAME: typeof KHR_MATERIALS_TRANSMISSION = KHR_MATERIALS_TRANSMISSION;
 	public declare extensionName: typeof KHR_MATERIALS_TRANSMISSION;
 	public declare propertyType: 'Transmission';
 	public declare parentTypes: [PropertyType.MATERIAL];

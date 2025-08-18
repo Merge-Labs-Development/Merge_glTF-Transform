@@ -1,8 +1,8 @@
-import test from 'ava';
-import { JSDOM } from 'jsdom';
 import { Document } from '@gltf-transform/core';
 import { DocumentView, NullImageProvider } from '@gltf-transform/view';
-import { BufferGeometry, Group, Mesh, MeshStandardMaterial, Texture } from 'three';
+import test from 'ava';
+import { JSDOM } from 'jsdom';
+import { type BufferGeometry, Group, type Mesh, type MeshStandardMaterial, type Texture } from 'three';
 
 global.document = new JSDOM().window.document;
 const imageProvider = new NullImageProvider();

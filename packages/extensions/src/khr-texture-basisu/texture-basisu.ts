@@ -1,16 +1,14 @@
-import { read as readKTX, KHR_DF_MODEL_ETC1S, KHR_DF_MODEL_UASTC } from 'ktx-parse';
 import {
 	Extension,
 	ImageUtils,
-	ImageUtilsFormat,
+	type ImageUtilsFormat,
 	PropertyType,
-	ReaderContext,
-	WriterContext,
-	vec2,
+	type ReaderContext,
+	type vec2,
+	type WriterContext,
 } from '@gltf-transform/core';
+import { KHR_DF_MODEL_ETC1S, KHR_DF_MODEL_UASTC, read as readKTX } from 'ktx-parse';
 import { KHR_TEXTURE_BASISU } from '../constants.js';
-
-const NAME = KHR_TEXTURE_BASISU;
 
 interface BasisuDef {
 	source: number;
@@ -122,10 +120,10 @@ class KTX2ImageUtils implements ImageUtilsFormat {
  * > prominent UV seams._
  */
 export class KHRTextureBasisu extends Extension {
-	public readonly extensionName = NAME;
+	public static readonly EXTENSION_NAME: typeof KHR_TEXTURE_BASISU = KHR_TEXTURE_BASISU;
+	public readonly extensionName: typeof KHR_TEXTURE_BASISU = KHR_TEXTURE_BASISU;
 	/** @hidden */
-	public readonly prereadTypes = [PropertyType.TEXTURE];
-	public static readonly EXTENSION_NAME = NAME;
+	public readonly prereadTypes: PropertyType[] = [PropertyType.TEXTURE];
 
 	/** @hidden */
 	public static register(): void {
@@ -135,8 +133,8 @@ export class KHRTextureBasisu extends Extension {
 	/** @hidden */
 	public preread(context: ReaderContext): this {
 		context.jsonDoc.json.textures!.forEach((textureDef) => {
-			if (textureDef.extensions && textureDef.extensions[NAME]) {
-				const basisuDef = textureDef.extensions[NAME] as BasisuDef;
+			if (textureDef.extensions && textureDef.extensions[KHR_TEXTURE_BASISU]) {
+				const basisuDef = textureDef.extensions[KHR_TEXTURE_BASISU] as BasisuDef;
 				textureDef.source = basisuDef.source;
 			}
 		});
@@ -144,8 +142,7 @@ export class KHRTextureBasisu extends Extension {
 	}
 
 	/** @hidden */
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	public read(context: ReaderContext): this {
+	public read(_context: ReaderContext): this {
 		return this;
 	}
 
@@ -162,7 +159,7 @@ export class KHRTextureBasisu extends Extension {
 					jsonDoc.json.textures!.forEach((textureDef) => {
 						if (textureDef.source === imageIndex) {
 							textureDef.extensions = textureDef.extensions || {};
-							textureDef.extensions[NAME] = { source: textureDef.source };
+							textureDef.extensions[KHR_TEXTURE_BASISU] = { source: textureDef.source };
 							delete textureDef.source;
 						}
 					});

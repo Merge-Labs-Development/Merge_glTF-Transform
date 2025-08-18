@@ -1,9 +1,9 @@
-import test from 'ava';
-import { JSDOM } from 'jsdom';
 import { Document } from '@gltf-transform/core';
 import { EXTMeshGPUInstancing } from '@gltf-transform/extensions';
 import { DocumentView, NullImageProvider } from '@gltf-transform/view';
-import { Group, InstancedMesh, Object3D } from 'three';
+import test from 'ava';
+import { JSDOM } from 'jsdom';
+import type { Group, InstancedMesh, Object3D } from 'three';
 
 global.document = new JSDOM().window.document;
 const imageProvider = new NullImageProvider();

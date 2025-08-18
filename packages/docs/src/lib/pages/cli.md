@@ -58,7 +58,7 @@ Full command list:
 
 <!-- begin:cli_help -->
 ```plaintext
-  gltf-transform 4.0.8 — Command-line interface (CLI) for the glTF Transform SDK.
+  gltf-transform 4.2.1 — Command-line interface (CLI) for the glTF Transform SDK.
 
   USAGE 
   
@@ -100,6 +100,7 @@ Full command list:
     weld                                 Merge equivalent vertices to optimize geometry         
     unweld                               De-index geometry, disconnecting any shared vertices   
     tangents                             Generate MikkTSpace vertex tangents                    
+    unwrap                               Generate texcoords                                     
     reorder                              Optimize vertex data for locality of reference         
     simplify                             Simplify mesh, reducing number of vertices             
                                                                                                 
@@ -114,6 +115,7 @@ Full command list:
     resize                               Resize PNG or JPEG textures                            
     etc1s                                KTX + Basis ETC1S texture compression                  
     uastc                                KTX + Basis UASTC texture compression                  
+    ktxdecompress                        KTX + Basis texture decompression                      
     ktxfix                               Fixes common issues in KTX texture metadata            
     avif                                 AVIF texture compression                               
     webp                                 WebP texture compression                               
@@ -121,7 +123,7 @@ Full command list:
     jpeg                                 JPEG texture compression                               
                                                                                                 
                                                                                                 
-                                         ⏯️  ANIMATION ──────────────────────────────────────── 
+                                         ⏯️ ANIMATION ────────────────────────────────────────  
     resample                             Resample animations, losslessly deduplicating keyframes
     sequence                             Animate node visibilities as a flipboard sequence      
     sparse                               Reduces storage for zero-filled arrays                 

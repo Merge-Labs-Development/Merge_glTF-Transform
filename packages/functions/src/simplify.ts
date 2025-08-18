@@ -1,21 +1,20 @@
-import { Document, Primitive, PropertyType, Transform } from '@gltf-transform/core';
+import { Document, Primitive, type Transform } from '@gltf-transform/core';
+import type { MeshoptSimplifier } from 'meshoptimizer';
+import { compactAttribute, compactPrimitive } from './compact-primitive.js';
+import { convertPrimitiveToTriangles } from './convert-primitive-mode.js';
+import { dequantizeAttributeArray } from './dequantize.js';
+import { getPrimitiveVertexCount, VertexCountMethod } from './get-vertex-count.js';
+import { unweldPrimitive } from './unweld.js';
 import {
+	assignDefaults,
 	createTransform,
-	formatDeltaOp,
+	deepDisposePrimitive,
 	deepListAttributes,
 	deepSwapAttribute,
+	formatDeltaOp,
 	shallowCloneAccessor,
-	assignDefaults,
 } from './utils.js';
 import { weld } from './weld.js';
-import type { MeshoptSimplifier } from 'meshoptimizer';
-import { dedup } from './dedup.js';
-import { prune } from './prune.js';
-import { dequantizeAttributeArray } from './dequantize.js';
-import { unweldPrimitive } from './unweld.js';
-import { convertPrimitiveToTriangles } from './convert-primitive-mode.js';
-import { compactAttribute, compactPrimitive } from './compact-primitive.js';
-import { VertexCountMethod, getPrimitiveVertexCount } from './get-vertex-count.js';
 
 const NAME = 'simplify';
 
@@ -35,22 +34,12 @@ export interface SimplifyOptions {
 	 * to ensure no seams appear.
 	 */
 	lockBorder?: boolean;
-	/**
-	 * Whether to perform cleanup steps after completing the operation. Recommended, and enabled by
-	 * default. Cleanup removes temporary resources created during the operation, but may also remove
-	 * pre-existing unused or duplicate resources in the {@link Document}. Applications that require
-	 * keeping these resources may need to disable cleanup, instead calling {@link dedup} and
-	 * {@link prune} manually (with customized options) later in the processing pipeline.
-	 * @experimental
-	 */
-	cleanup?: boolean;
 }
 
 export const SIMPLIFY_DEFAULTS: Required<Omit<SimplifyOptions, 'simplifier'>> = {
 	ratio: 0.0,
 	error: 0.0001,
 	lockBorder: false,
-	cleanup: true,
 };
 
 /**
@@ -99,7 +88,7 @@ export function simplify(_options: SimplifyOptions): Transform {
 		const logger = document.getLogger();
 
 		await simplifier.ready;
-		await document.transform(weld({ overwrite: false, cleanup: options.cleanup }));
+		await document.transform(weld({ overwrite: false }));
 
 		let numUnsupported = 0;
 
@@ -107,18 +96,15 @@ export function simplify(_options: SimplifyOptions): Transform {
 		for (const mesh of document.getRoot().listMeshes()) {
 			for (const prim of mesh.listPrimitives()) {
 				const mode = prim.getMode();
-				if (mode === TRIANGLES || mode === TRIANGLE_STRIP || mode === TRIANGLE_FAN) {
-					simplifyPrimitive(prim, options);
-					if (getPrimitiveVertexCount(prim, VertexCountMethod.RENDER) === 0) {
-						prim.dispose();
-					}
-				} else if (prim.getMode() === POINTS && !!simplifier.simplifyPoints) {
-					simplifyPrimitive(prim, options);
-					if (getPrimitiveVertexCount(prim, VertexCountMethod.RENDER) === 0) {
-						prim.dispose();
-					}
-				} else {
+				if (mode !== TRIANGLES && mode !== TRIANGLE_STRIP && mode !== TRIANGLE_FAN && mode !== POINTS) {
 					numUnsupported++;
+					continue;
+				}
+
+				simplifyPrimitive(prim, options);
+
+				if (getPrimitiveVertexCount(prim, VertexCountMethod.RENDER) === 0) {
+					deepDisposePrimitive(prim);
 				}
 			}
 
@@ -126,20 +112,7 @@ export function simplify(_options: SimplifyOptions): Transform {
 		}
 
 		if (numUnsupported > 0) {
-			logger.warn(`${NAME}: Skipping simplification of ${numUnsupported} primitives: Unsupported draw mode.`);
-		}
-
-		// Where simplification removes meshes, we may need to prune leaf nodes.
-		if (options.cleanup) {
-			await document.transform(
-				prune({
-					propertyTypes: [PropertyType.ACCESSOR, PropertyType.NODE],
-					keepAttributes: true,
-					keepIndices: true,
-					keepLeaves: false,
-				}),
-				dedup({ propertyTypes: [PropertyType.ACCESSOR] }),
-			);
+			logger.warn(`${NAME}: Skipped ${numUnsupported} primitives: Unsupported draw mode.`);
 		}
 
 		logger.debug(`${NAME}: Complete.`);
@@ -247,10 +220,8 @@ function _simplifyPoints(document: Document, prim: Primitive, options: Required<
 
 	// (2) Run simplification.
 
-	simplifier.useExperimentalFeatures = true;
 	const targetCount = Math.floor(options.ratio * srcVertexCount);
 	const dstIndicesArray = simplifier.simplifyPoints(positionArray, 3, targetCount, colorArray, colorStride);
-	simplifier.useExperimentalFeatures = false;
 
 	// (3) Write vertex attributes.
 

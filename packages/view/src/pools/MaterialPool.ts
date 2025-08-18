@@ -1,8 +1,8 @@
-import { GLTF, Primitive as PrimitiveDef } from '@gltf-transform/core';
+import { type GLTF, Primitive as PrimitiveDef } from '@gltf-transform/core';
 import {
 	LineBasicMaterial,
 	Material,
-	MeshBasicMaterial,
+	type MeshBasicMaterial,
 	MeshPhysicalMaterial,
 	MeshStandardMaterial,
 	PointsMaterial,

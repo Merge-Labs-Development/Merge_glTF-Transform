@@ -1,17 +1,17 @@
-import { Group, Material, Object3D, Texture } from 'three';
-import {
+import type {
 	Document,
-	Scene as SceneDef,
-	Node as NodeDef,
 	Material as MaterialDef,
 	Mesh as MeshDef,
+	Node as NodeDef,
 	Primitive as PrimitiveDef,
 	Property as PropertyDef,
+	Scene as SceneDef,
 	Texture as TextureDef,
 } from '@gltf-transform/core';
-import { Light as LightDef } from '@gltf-transform/extensions';
-import { DocumentViewConfig, DocumentViewImpl } from './DocumentViewImpl.js';
-import { LightLike, MeshLike } from './constants.js';
+import type { Light as LightDef } from '@gltf-transform/extensions';
+import type { Group, Material, Object3D, Texture } from 'three';
+import type { LightLike, MeshLike } from './constants.js';
+import { type DocumentViewConfig, DocumentViewImpl } from './DocumentViewImpl.js';
 
 /**
  * Constructs a three.js subtree from a glTF-Transform Document, and maintains a
@@ -21,6 +21,7 @@ import { LightLike, MeshLike } from './constants.js';
  */
 export class DocumentView {
 	/** @internal */ private _ready = false;
+	// biome-ignore lint/correctness/noUnusedPrivateClassMembers: For future use.
 	/** @internal */ private _document: Document;
 	/** @internal */ private _impl: DocumentViewImpl;
 
@@ -64,7 +65,7 @@ export class DocumentView {
 	public listViews(source: SceneDef): Group[];
 	public listViews(source: PropertyDef): object[] {
 		assert(this._ready);
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		// biome-ignore lint/suspicious/noExplicitAny: TODO
 		return this._impl.findValues(source as any);
 	}
 
@@ -76,7 +77,7 @@ export class DocumentView {
 	public getProperty(view: Object3D): MeshDef | NodeDef | SceneDef | null;
 	public getProperty(view: object): PropertyDef | null {
 		assert(this._ready);
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		// biome-ignore lint/suspicious/noExplicitAny: TODO
 		return this._impl.findDef(view as any);
 	}
 

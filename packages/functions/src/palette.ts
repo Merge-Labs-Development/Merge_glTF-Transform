@@ -1,18 +1,18 @@
 import {
 	ColorUtils,
-	Document,
-	Material,
-	Primitive,
+	type Document,
+	type Material,
+	type Primitive,
 	PropertyType,
-	Texture,
+	type Texture,
 	TextureInfo,
-	Transform,
-	vec4,
+	type Transform,
+	type vec4,
 } from '@gltf-transform/core';
-import { assignDefaults, createTransform } from './utils.js';
-import { prune } from './prune.js';
-import ndarray, { NdArray, TypedArray } from 'ndarray';
+import ndarray, { type NdArray, type TypedArray } from 'ndarray';
 import { savePixels } from 'ndarray-pixels';
+import { prune } from './prune.js';
+import { assignDefaults, createTransform } from './utils.js';
 
 const NAME = 'palette';
 

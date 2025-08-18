@@ -1,20 +1,20 @@
-import test from 'ava';
 import {
-	Accessor,
-	AnimationChannel,
-	bbox,
-	getBounds,
+	type Accessor,
+	type AnimationChannel,
+	type bbox,
 	Document,
-	Mesh,
-	Node,
+	getBounds,
+	type Mesh,
+	type Node,
 	Primitive,
-	PrimitiveTarget,
-	Scene,
-	vec3,
+	type PrimitiveTarget,
+	type Scene,
+	type vec3,
 } from '@gltf-transform/core';
-import { EXTMeshGPUInstancing, KHRMaterialsVolume, Volume } from '@gltf-transform/extensions';
+import { EXTMeshGPUInstancing, KHRMaterialsVolume, type Volume } from '@gltf-transform/extensions';
 import { quantize } from '@gltf-transform/functions';
 import { logger, round, roundBbox } from '@gltf-transform/test-utils';
+import test from 'ava';
 
 test('noop', async (t) => {
 	const document = new Document().setLogger(logger);
@@ -344,7 +344,6 @@ test('skinned mesh parenting', async (t) => {
 	createScene(doc);
 	node = doc.getRoot().listNodes()[0];
 	mesh = node.getMesh();
-	// eslint-disable-next-line prefer-const
 	scaleChannel = doc.createAnimationChannel().setTargetNode(node).setTargetPath('scale');
 	weightsChannel = doc.createAnimationChannel().setTargetNode(node).setTargetPath('weights');
 	doc.createAnimation().addChannel(weightsChannel).addChannel(scaleChannel);
@@ -381,6 +380,11 @@ test('instancing', async (t) => {
 		Array.from(batch.getAttribute('TRANSLATION').getArray()),
 		[12.5, 12.5, 0, 13.5, 13.5, 1],
 		'batch translation includes quantization transform',
+	);
+	t.deepEqual(
+		Array.from(batch.getAttribute('SCALE').getArray()),
+		[2.5, 2.5, 2.5, 2.5, 2.5, 2.5],
+		'batch scale added to attributes',
 	);
 });
 
@@ -447,7 +451,7 @@ function createScene(doc: Document): Scene {
 				.setType('VEC3')
 
 				.setArray(
-					// prettier-ignore
+					// biome-ignore format: Readability.
 					new Float32Array([
 						10, 10, 0,
 						10, 15, 0,
@@ -466,7 +470,7 @@ function createScene(doc: Document): Scene {
 				.createAccessor()
 				.setType('VEC3')
 				.setArray(
-					// prettier-ignore
+					// biome-ignore format: Readability.
 					new Float32Array([
 						0, 0, 100,
 						0, 100, 0,

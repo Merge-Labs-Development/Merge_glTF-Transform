@@ -1,21 +1,25 @@
 import {
-	BufferAttribute,
+	type Accessor as AccessorDef,
+	type Material as MaterialDef,
+	Primitive as PrimitiveDef,
+} from '@gltf-transform/core';
+import {
+	type BufferAttribute,
 	BufferGeometry,
 	Line,
 	LineLoop,
 	LineSegments,
-	Material,
+	type Material,
 	Mesh,
 	Points,
 	SkinnedMesh,
 } from 'three';
-import { Accessor as AccessorDef, Material as MaterialDef, Primitive as PrimitiveDef } from '@gltf-transform/core';
+import type { MeshLike } from '../constants.js';
 import type { DocumentViewSubjectAPI } from '../DocumentViewImpl.js';
-import { Subject } from './Subject.js';
 import { RefMapObserver, RefObserver } from '../observers/index.js';
-import { MeshLike } from '../constants.js';
-import { MaterialParams, MaterialPool, ValuePool } from '../pools/index.js';
+import { type MaterialParams, MaterialPool, type ValuePool } from '../pools/index.js';
 import { DEFAULT_MATERIAL, semanticToAttributeName } from '../utils/index.js';
+import { Subject } from './Subject.js';
 
 /** @internal */
 export class PrimitiveSubject extends Subject<PrimitiveDef, MeshLike> {

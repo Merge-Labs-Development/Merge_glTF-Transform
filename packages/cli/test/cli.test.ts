@@ -1,12 +1,12 @@
-import fs from 'fs';
-import path, { dirname } from 'path';
-import test from 'ava';
-import tmp from 'tmp';
+import { mockConsoleLog, program, programReady } from '@gltf-transform/cli';
 import { Document, FileUtils, NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { program, programReady } from '@gltf-transform/cli';
+import test from 'ava';
 import draco3d from 'draco3dgltf';
+import fs from 'fs';
 import { MeshoptDecoder } from 'meshoptimizer';
+import path, { dirname } from 'path';
+import tmp from 'tmp';
 import { fileURLToPath } from 'url';
 
 tmp.setGracefulCleanup();
@@ -78,6 +78,8 @@ test('optimize', async (t) => {
 });
 
 test('validate', async (t) => {
+	mockConsoleLog(() => {});
+
 	await programReady;
 	const io = new NodeIO();
 	const input = tmp.tmpNameSync({ postfix: '.glb' });
@@ -93,6 +95,8 @@ test('validate', async (t) => {
 });
 
 test('inspect', async (t) => {
+	mockConsoleLog(() => {});
+
 	await programReady;
 	const io = new NodeIO();
 	const input = tmp.tmpNameSync({ postfix: '.glb' });
@@ -135,7 +139,7 @@ test('merge', async (t) => {
 		.setBuffer(bufB);
 	await io.write(inputB, documentB);
 
-	fs.writeFileSync(inputC, Buffer.from([1, 2, 3, 4, 5]));
+	fs.writeFileSync(inputC, new Uint8Array([1, 2, 3, 4, 5]));
 
 	await program
 		// https://github.com/mattallty/Caporal.js/issues/195

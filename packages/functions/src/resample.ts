@@ -1,18 +1,18 @@
 import {
 	Accessor,
-	AnimationSampler,
+	type AnimationSampler,
 	ComponentTypeToTypedArray,
-	Document,
-	GLTF,
+	type Document,
+	type GLTF,
 	MathUtils,
 	PropertyType,
 	Root,
-	Transform,
-	TypedArray,
+	type Transform,
+	type TypedArray,
 } from '@gltf-transform/core';
+import { resampleDebug } from 'keyframe-resample';
 import { dedup } from './dedup.js';
 import { assignDefaults, createTransform } from './utils.js';
-import { resampleDebug } from 'keyframe-resample';
 
 const NAME = 'resample';
 
@@ -97,7 +97,7 @@ export function resample(_options: ResampleOptions = RESAMPLE_DEFAULTS): Transfo
 					accessorsVisited.add(input);
 					accessorsVisited.add(output);
 
-					// prettier-ignore
+					// biome-ignore format: Readability.
 					const tmpTimes = toFloat32Array(
 						input.getArray()!,
 						input.getComponentType(),

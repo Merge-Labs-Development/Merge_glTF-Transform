@@ -1,6 +1,26 @@
-export { Document, Transform, TransformContext } from './document.js';
-export { JSONDocument } from './json-document.js';
+export { Graph, GraphEdge, type Ref, RefList, RefMap, RefSet } from 'property-graph';
+export {
+	type bbox,
+	ComponentTypeToTypedArray,
+	Format,
+	GLB_BUFFER,
+	type mat3,
+	type mat4,
+	type Nullable,
+	PropertyType,
+	TextureChannel,
+	type TypedArray,
+	type TypedArrayConstructor,
+	VERSION,
+	VertexLayout,
+	type vec2,
+	type vec3,
+	type vec4,
+} from './constants.js';
+export { Document, type Transform, type TransformContext } from './document.js';
 export { Extension } from './extension.js';
+export { DenoIO, NodeIO, PlatformIO, ReaderContext, WebIO, WriterContext } from './io/index.js';
+export type { JSONDocument } from './json-document.js';
 export {
 	Accessor,
 	Animation,
@@ -8,55 +28,35 @@ export {
 	AnimationSampler,
 	Buffer,
 	Camera,
-	ExtensionProperty,
+	COPY_IDENTITY,
 	ExtensibleProperty,
-	Property,
-	IProperty,
+	ExtensionProperty,
+	type IProperty,
 	Material,
 	Mesh,
 	Node,
 	Primitive,
 	PrimitiveTarget,
+	Property,
+	type PropertyResolver,
 	Root,
 	Scene,
 	Skin,
 	Texture,
 	TextureInfo,
-	PropertyResolver,
-	COPY_IDENTITY,
 } from './properties/index.js';
-export { Graph, GraphEdge, Ref, RefList, RefSet, RefMap } from 'property-graph';
-export { DenoIO, PlatformIO, NodeIO, WebIO, ReaderContext, WriterContext } from './io/index.js';
+export type { GLTF } from './types/gltf.js';
 export {
 	BufferUtils,
-	HTTPUtils,
 	ColorUtils,
 	FileUtils,
+	getBounds,
+	HTTPUtils,
+	type ILogger,
 	ImageUtils,
-	ImageUtilsFormat,
-	ILogger,
+	type ImageUtilsFormat,
 	Logger,
 	MathUtils,
-	Verbosity,
-	getBounds,
 	uuid,
+	Verbosity,
 } from './utils/index.js';
-export {
-	TypedArray,
-	TypedArrayConstructor,
-	ComponentTypeToTypedArray,
-	PropertyType,
-	Format,
-	Nullable,
-	TextureChannel,
-	VertexLayout,
-	vec2,
-	vec3,
-	vec4,
-	mat3,
-	mat4,
-	bbox,
-	GLB_BUFFER,
-	VERSION,
-} from './constants.js';
-export { GLTF } from './types/gltf.js';

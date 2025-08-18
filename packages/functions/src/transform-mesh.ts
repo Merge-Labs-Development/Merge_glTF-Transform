@@ -1,6 +1,6 @@
-import { mat4, Mesh, Primitive } from '@gltf-transform/core';
-import { transformPrimitive } from './transform-primitive.js';
+import { Mesh, type mat4, Primitive } from '@gltf-transform/core';
 import { compactPrimitive } from './compact-primitive.js';
+import { transformPrimitive } from './transform-primitive.js';
 
 /**
  * Applies a transform matrix to every {@link Primitive} in the given {@link Mesh}.

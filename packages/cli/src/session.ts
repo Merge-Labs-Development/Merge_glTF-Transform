@@ -1,10 +1,10 @@
-import { Document, NodeIO, FileUtils, Transform, Format, Verbosity } from '@gltf-transform/core';
-import type { Packet, KHRXMP } from '@gltf-transform/extensions';
+import { Document, FileUtils, Format, type NodeIO, type Transform, Verbosity } from '@gltf-transform/core';
+import type { KHRXMP, Packet } from '@gltf-transform/extensions';
 import { unpartition } from '@gltf-transform/functions';
-import { Listr, ListrTask } from 'listr2';
-import { dim, formatBytes, formatLong, XMPContext } from './util.js';
+import { Listr, type ListrTask } from 'listr2';
 import { performance } from 'perf_hooks'; // global in Node.js v16+
-import { Logger } from './program.js';
+import type { Logger } from './program.js';
+import { dim, formatBytes, formatLong, XMPContext } from './util.js';
 
 /** Helper class for managing a CLI command session. */
 export class Session {
@@ -53,7 +53,7 @@ export class Session {
 			for (const transform of transforms) {
 				tasks.push({
 					title: transform.name,
-					task: async (ctx, task) => {
+					task: async (_ctx, task) => {
 						let time = performance.now();
 						await document.transform(transform);
 						time = Math.round(performance.now() - time);
@@ -67,7 +67,11 @@ export class Session {
 
 			// Disable signal listeners so Ctrl+C works. Note that 'simple' and 'default'
 			// renderers have different capability to display errors and warnings.
-			await new Listr(tasks, { renderer: 'default', registerSignalListeners: false }).run();
+			await new Listr(tasks, {
+				renderer: 'default',
+				registerSignalListeners: false,
+				silentRendererCondition: process.env.NODE_ENV === 'test',
+			}).run();
 			console.log('');
 
 			logger.setVerbosity(prevLevel);

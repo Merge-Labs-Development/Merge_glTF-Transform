@@ -1,9 +1,9 @@
 import {
 	ExtensionProperty,
-	IProperty,
-	Nullable,
+	type IProperty,
+	type Nullable,
 	PropertyType,
-	Texture,
+	type Texture,
 	TextureChannel,
 	TextureInfo,
 } from '@gltf-transform/core';
@@ -29,7 +29,7 @@ const { R, G, B } = TextureChannel;
  * Defines clear coat for a PBR material. See {@link KHRMaterialsClearcoat}.
  */
 export class Clearcoat extends ExtensionProperty<IClearcoat> {
-	public static EXTENSION_NAME = KHR_MATERIALS_CLEARCOAT;
+	public static EXTENSION_NAME: typeof KHR_MATERIALS_CLEARCOAT = KHR_MATERIALS_CLEARCOAT;
 	public declare extensionName: typeof KHR_MATERIALS_CLEARCOAT;
 	public declare propertyType: 'Clearcoat';
 	public declare parentTypes: [PropertyType.MATERIAL];

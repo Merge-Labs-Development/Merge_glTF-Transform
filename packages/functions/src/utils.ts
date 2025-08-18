@@ -1,17 +1,17 @@
+import {
+	type Accessor,
+	Document,
+	type GLTF,
+	Primitive,
+	type Property,
+	PropertyType,
+	type Texture,
+	type Transform,
+	type TransformContext,
+	type vec2,
+} from '@gltf-transform/core';
 import type { NdArray } from 'ndarray';
 import { getPixels, savePixels } from 'ndarray-pixels';
-import {
-	Accessor,
-	Document,
-	GLTF,
-	Primitive,
-	Property,
-	PropertyType,
-	Texture,
-	Transform,
-	TransformContext,
-	vec2,
-} from '@gltf-transform/core';
 
 const { POINTS, LINES, LINE_STRIP, LINE_LOOP, TRIANGLES, TRIANGLE_STRIP, TRIANGLE_FAN } = Primitive.Mode;
 
@@ -45,7 +45,7 @@ export function assignDefaults<Defaults, Options>(defaults: Defaults, options: O
 	const result = { ...defaults } as Defaults & Partial<Options>;
 	for (const key in options) {
 		if (options[key] !== undefined) {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			// biome-ignore lint/suspicious/noExplicitAny: TODO
 			result[key] = options[key] as any;
 		}
 	}
@@ -142,9 +142,11 @@ export function formatBytes(bytes: number, decimals = 2): string {
 	return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
+const _longFormatter = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
+
 /** @hidden */
 export function formatLong(x: number): string {
-	return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+	return _longFormatter.format(x);
 }
 
 /** @hidden */
@@ -187,8 +189,30 @@ export function deepSwapAttribute(prim: Primitive, src: Accessor, dst: Accessor)
 	}
 }
 
+/**
+ * Disposes of a {@link Primitive} and any {@link Accessor Accesors} for which
+ * it is the last remaining parent.
+ * @hidden
+ */
+export function deepDisposePrimitive(prim: Primitive): void {
+	const indices = prim.getIndices();
+	const attributes = deepListAttributes(prim);
+
+	prim.dispose();
+
+	if (indices && !isUsed(indices)) {
+		indices.dispose();
+	}
+
+	for (const attribute of attributes) {
+		if (!isUsed(attribute)) {
+			attribute.dispose();
+		}
+	}
+}
+
 /** @hidden */
-export function shallowEqualsArray(a: ArrayLike<unknown> | null, b: ArrayLike<unknown> | null) {
+export function shallowEqualsArray(a: ArrayLike<unknown> | null, b: ArrayLike<unknown> | null): boolean {
 	if (a == null && b == null) return true;
 	if (a == null || b == null) return false;
 	if (a.length !== b.length) return false;
@@ -210,14 +234,14 @@ export function shallowCloneAccessor(document: Document, accessor: Accessor): Ac
 }
 
 /** @hidden */
-export function createIndices(count: number, maxIndex = count): Uint16Array | Uint32Array {
+export function createIndices(count: number, maxIndex: number = count): Uint16Array | Uint32Array {
 	const array = createIndicesEmpty(count, maxIndex);
 	for (let i = 0; i < array.length; i++) array[i] = i;
 	return array;
 }
 
 /** @hidden */
-export function createIndicesEmpty(count: number, maxIndex = count): Uint16Array | Uint32Array {
+export function createIndicesEmpty(count: number, maxIndex: number = count): Uint16Array | Uint32Array {
 	return maxIndex <= 65534 ? new Uint16Array(count) : new Uint32Array(count);
 }
 
@@ -228,7 +252,7 @@ export function isUsed(prop: Property): boolean {
 
 /** @hidden */
 export function isEmptyObject(object: Record<string, unknown>): boolean {
-	for (const key in object) return false;
+	for (const _key in object) return false;
 	return true;
 }
 

@@ -1,8 +1,8 @@
-import { Nullable, PropertyType, TypedArray } from '../constants.js';
+import { type Nullable, PropertyType, type TypedArray } from '../constants.js';
 import type { GLTF } from '../types/gltf.js';
 import { MathUtils } from '../utils/index.js';
 import type { Buffer } from './buffer.js';
-import { ExtensibleProperty, IExtensibleProperty } from './extensible-property.js';
+import { ExtensibleProperty, type IExtensibleProperty } from './extensible-property.js';
 
 interface IAccessor extends IExtensibleProperty {
 	array: TypedArray | null;
@@ -314,6 +314,7 @@ export class Accessor extends ExtensibleProperty<IAccessor> {
 	 * `VEC2` accessor is 2. This value is determined automatically based on array length and
 	 * accessor type, specified with {@link Accessor.setType setType()}.
 	 */
+	// biome-ignore lint/suspicious/useAdjacentOverloadSignatures: Static vs. non-static.
 	public getElementSize(): number {
 		return Accessor.getElementSize(this.get('type'));
 	}
@@ -419,7 +420,7 @@ export class Accessor extends ExtensibleProperty<IAccessor> {
 	 * }
 	 * ```
 	 */
-	public getElement(index: number, target: number[]): number[] {
+	public getElement<T extends number[]>(index: number, target: T): T {
 		const normalized = this.getNormalized();
 		const elementSize = this.getElementSize();
 		const componentType = this.getComponentType();

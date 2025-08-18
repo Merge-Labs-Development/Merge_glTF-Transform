@@ -1,35 +1,33 @@
-import fs, { rm } from 'fs/promises';
-import { join } from 'path';
-import micromatch from 'micromatch';
-import os from 'os';
-import semver from 'semver';
-import tmp from 'tmp';
-import pLimit from 'p-limit';
-import type sharp from 'sharp';
-
 import {
-	Document,
-	FileUtils,
-	ILogger,
-	ImageUtils,
-	TextureChannel,
-	Transform,
-	vec2,
-	uuid,
-	Texture,
 	BufferUtils,
+	type Document,
+	FileUtils,
+	type ILogger,
+	ImageUtils,
+	type Texture,
+	TextureChannel,
+	type Transform,
+	uuid,
+	type vec2,
 } from '@gltf-transform/core';
 import { KHRTextureBasisu } from '@gltf-transform/extensions';
 import {
-	TextureResizeFilter,
 	createTransform,
 	fitPowerOfTwo,
 	fitWithin,
 	getTextureChannelMask,
 	getTextureColorSpace,
 	listTextureSlots,
+	TextureResizeFilter,
 } from '@gltf-transform/functions';
-import { spawn, commandExists, formatBytes, waitExit, MICROMATCH_OPTIONS } from '../util.js';
+import fs, { rm } from 'fs/promises';
+import micromatch from 'micromatch';
+import os from 'os';
+import pLimit from 'p-limit';
+import { join } from 'path';
+import type sharp from 'sharp';
+import tmp from 'tmp';
+import { commandExists, formatBytes, MICROMATCH_OPTIONS, spawn, waitExit } from '../util.js';
 
 const NUM_CPUS = os.cpus().length || 1; // microsoft/vscode#112122
 const KTX_SOFTWARE_VERSION_MIN = '4.3.0';
@@ -260,18 +258,17 @@ export const toktx = function (options: ETC1SOptions | UASTCOptions): Transform 
 				const srcPath = join(batchDir.name, `${batchPrefix}_${textureIndex}.${srcExtension}`);
 				const dstPath = join(batchDir.name, `${batchPrefix}_${textureIndex}.ktx2`);
 
-				await fs.writeFile(srcPath, Buffer.from(srcImage));
+				await fs.writeFile(srcPath, srcImage);
 
 				const params = [
 					'create',
-					...createParams(texture, slots, channels, srcSize, logger, numTextures, options),
+					...createParams(texture, slots, channels, numTextures, options),
 					srcPath,
 					dstPath,
 				];
 				logger.debug(`${prefix}: Spawning → ktx ${params.join(' ')}`);
 
 				// COMPRESS: Run `ktx create` CLI tool.
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
 				const [status, _stdout, stderr] = await waitExit(spawn('ktx', params as string[]));
 
 				if (status !== 0) {
@@ -315,8 +312,6 @@ function createParams(
 	texture: Texture,
 	slots: string[],
 	channels: number,
-	size: vec2,
-	logger: ILogger,
 	numTextures: number,
 	options: ETC1SOptions | UASTCOptions,
 ): (string | number)[] {
@@ -415,7 +410,7 @@ function createParams(
 	return params;
 }
 
-async function checkKTXSoftware(logger: ILogger): Promise<string> {
+export async function checkKTXSoftware(logger: ILogger): Promise<string> {
 	if (!(await commandExists('ktx')) && !process.env.CI) {
 		throw new Error(
 			`Command "ktx" not found. Please install KTX-Software ${KTX_SOFTWARE_VERSION_MIN}+, ` +
@@ -430,17 +425,15 @@ async function checkKTXSoftware(logger: ILogger): Promise<string> {
 		.replace(/~\d+/, '')
 		.trim();
 
-	if (status !== 0 || !semver.valid(semver.clean(version))) {
+	if (status !== 0 || !version) {
 		throw new Error(
 			`Unable to find "ktx" version. Confirm KTX-Software ${KTX_SOFTWARE_VERSION_MIN}+ is installed.`,
 		);
-	} else if (semver.lt(semver.clean(version)!, KTX_SOFTWARE_VERSION_MIN)) {
-		logger.warn(`ktx: Expected KTX-Software >= v${KTX_SOFTWARE_VERSION_MIN}, found ${version}.`);
 	} else {
 		logger.debug(`ktx: Found KTX-Software ${version}.`);
 	}
 
-	return semver.clean(version)!;
+	return version;
 }
 
 function isMultipleOfFour(value: number): boolean {

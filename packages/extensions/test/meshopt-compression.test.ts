@@ -1,8 +1,8 @@
-import path, { dirname } from 'path';
-import test from 'ava';
-import { Document, NodeIO, getBounds, Format, Primitive } from '@gltf-transform/core';
+import { Document, Format, getBounds, NodeIO, Primitive } from '@gltf-transform/core';
 import { EXTMeshoptCompression, KHRMeshQuantization } from '@gltf-transform/extensions';
+import test from 'ava';
 import { MeshoptDecoder, MeshoptEncoder } from 'meshoptimizer';
+import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const INPUTS = ['BoxMeshopt.glb', 'BoxMeshopt.gltf'];
@@ -60,7 +60,7 @@ test('encoding sparse', async (t) => {
 	const doc = new Document();
 	doc.createExtension(EXTMeshoptCompression).setRequired(true);
 
-	// prettier-ignore
+	// biome-ignore format: Readability.
 	const positionArray = [
 		0, 0, 1,
 		0, 1, 0,

@@ -26,18 +26,12 @@ export class BufferUtils {
 
 	/** Encodes text to a byte array. */
 	static encodeText(text: string): Uint8Array {
-		if (typeof TextEncoder !== 'undefined') {
-			return new TextEncoder().encode(text);
-		}
-		return Buffer.from(text);
+		return new TextEncoder().encode(text);
 	}
 
 	/** Decodes a byte array to text. */
 	static decodeText(array: Uint8Array): string {
-		if (typeof TextDecoder !== 'undefined') {
-			return new TextDecoder().decode(array);
-		}
-		return Buffer.from(array).toString('utf8');
+		return new TextDecoder().decode(array);
 	}
 
 	/**
@@ -114,7 +108,7 @@ export class BufferUtils {
 	 * ```
 	 *
 	 */
-	static toView(a: TypedArray, byteOffset = 0, byteLength = Infinity): Uint8Array {
+	static toView(a: TypedArray, byteOffset = 0, byteLength: number = Infinity): Uint8Array {
 		return new Uint8Array(a.buffer, a.byteOffset + byteOffset, Math.min(a.byteLength, byteLength));
 	}
 

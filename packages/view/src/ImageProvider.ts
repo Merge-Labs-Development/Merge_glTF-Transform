@@ -1,5 +1,5 @@
-import { Texture as TextureDef } from '@gltf-transform/core';
-import { CompressedTexture, Texture, WebGLRenderer, REVISION } from 'three';
+import type { Texture as TextureDef } from '@gltf-transform/core';
+import { type CompressedTexture, REVISION, Texture, WebGLRenderer } from 'three';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 
 const TRANSCODER_PATH = `https://unpkg.com/three@0.${REVISION}.x/examples/jsm/libs/basis/`;
@@ -24,10 +24,8 @@ function createTexture(name: string, uri: string): Texture {
 
 // Placeholder images.
 const NULL_IMAGE_URI =
-	// eslint-disable-next-line max-len
 	'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAAXNSR0IArs4c6QAAABNJREFUGFdj/M9w9z8DEmAkXQAAyCMLcU6pckIAAAAASUVORK5CYII=';
 const LOADING_IMAGE_URI =
-	// eslint-disable-next-line max-len
 	'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAA1JREFUGFdj+P///38ACfsD/QVDRcoAAAAASUVORK5CYII=';
 
 export interface ImageProvider {
@@ -40,8 +38,8 @@ export interface ImageProvider {
 }
 
 export class NullImageProvider implements ImageProvider {
-	readonly nullTexture = createTexture('__NULL_TEXTURE', NULL_IMAGE_URI);
-	readonly loadingTexture = createTexture('__LOADING_TEXTURE', LOADING_IMAGE_URI);
+	readonly nullTexture: Texture = createTexture('__NULL_TEXTURE', NULL_IMAGE_URI);
+	readonly loadingTexture: Texture = createTexture('__LOADING_TEXTURE', LOADING_IMAGE_URI);
 
 	async initTexture(_textureDef: TextureDef): Promise<void> {}
 	async getTexture(_: TextureDef): Promise<Texture | CompressedTexture> {
@@ -54,8 +52,8 @@ export class NullImageProvider implements ImageProvider {
 }
 
 export class DefaultImageProvider implements ImageProvider {
-	readonly nullTexture = createTexture('__NULL_TEXTURE', NULL_IMAGE_URI);
-	readonly loadingTexture = createTexture('__LOADING_TEXTURE', LOADING_IMAGE_URI);
+	readonly nullTexture: Texture = createTexture('__NULL_TEXTURE', NULL_IMAGE_URI);
+	readonly loadingTexture: Texture = createTexture('__LOADING_TEXTURE', LOADING_IMAGE_URI);
 
 	private _cache = new Map<ArrayBuffer, Texture | CompressedTexture>();
 	private _ktx2Loader: KTX2Loader | null = null;
@@ -84,19 +82,18 @@ export class DefaultImageProvider implements ImageProvider {
 	}
 
 	clear(): void {
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		for (const [_, texture] of this._cache) {
 			texture.dispose();
 		}
 		this._cache.clear();
 	}
 
-	dispose() {
+	dispose(): void {
 		this.clear();
 		if (this._ktx2Loader) this._ktx2Loader.dispose();
 	}
 
-	/** Load PNG, JPEG, or other browser-suppored image format. */
+	/** Load PNG, JPEG, or other browser-supported image format. */
 	private async _loadImage(image: ArrayBuffer, mimeType: string): Promise<Texture> {
 		return new Promise((resolve, reject) => {
 			const blob = new Blob([image], { type: mimeType });

@@ -1,27 +1,27 @@
 import {
 	AnimationChannel,
-	Document,
-	mat4,
-	Mesh,
-	Node,
-	Primitive,
+	type Document,
+	type Mesh,
+	type mat4,
+	type Node,
+	type Primitive,
 	PropertyType,
-	Scene,
-	Transform,
+	type Scene,
+	type Transform,
 } from '@gltf-transform/core';
 import { invert, multiply } from 'gl-matrix/mat4';
+import { compactPrimitive } from './compact-primitive.js';
+import { dequantizeAttribute } from './dequantize.js';
 import { joinPrimitives } from './join-primitives.js';
 import { prune } from './prune.js';
 import { transformPrimitive } from './transform-primitive.js';
 import { assignDefaults, createPrimGroupKey, createTransform, formatLong, isUsed } from './utils.js';
-import { dequantizeAttribute } from './dequantize.js';
-import { compactPrimitive } from './compact-primitive.js';
 
 const NAME = 'join';
 
 const { ROOT, NODE, MESH, PRIMITIVE, ACCESSOR } = PropertyType;
 
-// prettier-ignore
+// biome-ignore format: Readability.
 const _matrix = [
 	0, 0, 0, 0,
 	0, 0, 0, 0,
@@ -53,12 +53,22 @@ export interface JoinOptions {
 	 * @experimental
 	 */
 	cleanup?: boolean;
+	/**
+	 * A filter function used to evaluate a condition on a given {@link Node Node}.
+	 * This function should return a boolean indicating whether the node
+	 * satisfies the provided condition.
+	 *
+	 * @param {Node} node - The node instance to be evaluated.
+	 * @returns {boolean} - The result of the evaluation; `true` if the condition is met, otherwise `false`.
+	 */
+	filter?: (node: Node) => boolean;
 }
 
 export const JOIN_DEFAULTS: Required<JoinOptions> = {
 	keepMeshes: false,
 	keepNamed: false,
 	cleanup: true,
+	filter: () => true,
 };
 
 /**
@@ -134,6 +144,9 @@ function _joinLevel(document: Document, parent: Node | Scene, options: Required<
 	const children = parent.listChildren();
 	for (let nodeIndex = 0; nodeIndex < children.length; nodeIndex++) {
 		const node = children[nodeIndex];
+
+		// Skip nodes not matching the filter.
+		if (!options.filter(node)) continue;
 
 		// Skip animated nodes.
 		const isAnimated = node.listParents().some((p) => p instanceof AnimationChannel);

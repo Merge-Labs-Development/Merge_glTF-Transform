@@ -1,15 +1,15 @@
-import fs from 'fs';
 import {
-	Document,
+	type Buffer,
+	type Document,
 	FileUtils,
 	ImageUtils,
-	NodeIO,
-	Transform,
-	Texture,
-	Buffer,
+	type NodeIO,
 	PropertyType,
+	type Texture,
+	type Transform,
 } from '@gltf-transform/core';
 import { dedup, mergeDocuments, unpartition } from '@gltf-transform/functions';
+import fs from 'fs';
 
 const NAME = 'merge';
 

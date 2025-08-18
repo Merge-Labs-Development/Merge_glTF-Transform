@@ -5,7 +5,7 @@ declare const PACKAGE_VERSION: string;
  * Current version of the package.
  * @hidden
  */
-export const VERSION = `v${PACKAGE_VERSION}`;
+export const VERSION: string = `v${PACKAGE_VERSION}`;
 
 /** @internal */
 export const NAME = '@gltf-transform/core';
@@ -48,7 +48,7 @@ export type vec3 = [number, number, number];
  */
 export type vec4 = [number, number, number, number];
 
-// prettier-ignore
+// biome-ignore format: Readability.
 /**
  * 3x3 matrix, e.g. an affine transform of a 2D vector.
  * @hidden
@@ -59,7 +59,7 @@ export type mat3 = [
 	number, number, number,
 ];
 
-// prettier-ignore
+// biome-ignore format: Readability.
 /**
  * 4x4 matrix, e.g. an affine transform of a 3D vector.
  * @hidden
@@ -152,7 +152,7 @@ export enum Format {
 	GLB = 'GLB',
 }
 
-export const ComponentTypeToTypedArray = {
+export const ComponentTypeToTypedArray: Record<string, TypedArrayConstructor> = {
 	'5120': Int8Array,
 	'5121': Uint8Array,
 	'5122': Int16Array,

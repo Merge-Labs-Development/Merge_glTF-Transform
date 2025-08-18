@@ -1,7 +1,7 @@
-import test from 'ava';
 import { Accessor, Document } from '@gltf-transform/core';
-import { logger, quat } from '@gltf-transform/test-utils';
 import { resample } from '@gltf-transform/functions';
+import { logger, quat } from '@gltf-transform/test-utils';
+import test from 'ava';
 
 test('all', async (t) => {
 	const doc = new Document().setLogger(logger);
@@ -65,7 +65,7 @@ test('rotation', async (t) => {
 	t.deepEqual(toArray(sampler.getInput()), [0, 3, 6], 'input');
 	t.deepEqual(
 		toArray(sampler.getOutput()),
-		// prettier-ignore
+		// biome-ignore format: Readability.
 		[
 			0, 0, 0, 1,
 			0.9238795042037964, 0, 0, 0.3826834261417389,

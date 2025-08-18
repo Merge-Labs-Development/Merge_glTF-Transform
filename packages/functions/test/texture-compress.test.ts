@@ -1,8 +1,8 @@
-import test from 'ava';
 import { Document } from '@gltf-transform/core';
 import { EXTTextureWebP } from '@gltf-transform/extensions';
 import { compressTexture, textureCompress } from '@gltf-transform/functions';
 import { logger } from '@gltf-transform/test-utils';
+import test from 'ava';
 import ndarray from 'ndarray';
 import { savePixels } from 'ndarray-pixels';
 
@@ -341,7 +341,7 @@ function createMockEncoder() {
 	return { encoder, calls };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: TODO
 function findLast(calls: any[], fn: (call: any) => boolean): any {
 	for (let i = calls.length - 1; i >= 0; i--) {
 		if (fn(calls[i])) return calls[i];

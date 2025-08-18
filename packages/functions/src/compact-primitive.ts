@@ -1,7 +1,13 @@
-import { Accessor, Document, Primitive, TypedArray, TypedArrayConstructor } from '@gltf-transform/core';
-import { createIndices, createIndicesEmpty, deepListAttributes, shallowCloneAccessor } from './utils.js';
-import { VertexCountMethod, getPrimitiveVertexCount } from './get-vertex-count.js';
+import {
+	type Accessor,
+	Document,
+	type Primitive,
+	type TypedArray,
+	type TypedArrayConstructor,
+} from '@gltf-transform/core';
+import { getPrimitiveVertexCount, VertexCountMethod } from './get-vertex-count.js';
 import { EMPTY_U32 } from './hash-table.js';
+import { createIndices, createIndicesEmpty, deepListAttributes, shallowCloneAccessor } from './utils.js';
 
 /**
  * Rewrites a {@link Primitive} such that all unused vertices in its vertex

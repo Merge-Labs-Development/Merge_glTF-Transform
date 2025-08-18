@@ -1,8 +1,8 @@
-import { mat4, MathUtils, Node } from '@gltf-transform/core';
+import { MathUtils, type mat4, type Node } from '@gltf-transform/core';
 import { multiply as multiplyMat4 } from 'gl-matrix/mat4';
 import { transformMesh } from './transform-mesh.js';
 
-// prettier-ignore
+// biome-ignore format: Readability.
 const IDENTITY: mat4 = [
   1, 0, 0, 0,
   0, 1, 0, 0,

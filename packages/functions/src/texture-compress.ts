@@ -1,21 +1,21 @@
 import {
 	BufferUtils,
-	Document,
+	type Document,
 	FileUtils,
 	ImageUtils,
-	Texture,
+	type Texture,
 	TextureChannel,
-	Transform,
-	vec2,
+	type Transform,
+	type vec2,
 } from '@gltf-transform/core';
 import { EXTTextureAVIF, EXTTextureWebP } from '@gltf-transform/extensions';
-import { getTextureChannelMask } from './list-texture-channels.js';
-import { listTextureSlots } from './list-texture-slots.js';
-import type sharp from 'sharp';
-import { assignDefaults, createTransform, fitPowerOfTwo, fitWithin, formatBytes } from './utils.js';
-import { getPixels, savePixels } from 'ndarray-pixels';
 import ndarray from 'ndarray';
 import { lanczos2, lanczos3 } from 'ndarray-lanczos';
+import { getPixels, savePixels } from 'ndarray-pixels';
+import type sharp from 'sharp';
+import { getTextureChannelMask } from './list-texture-channels.js';
+import { listTextureSlots } from './list-texture-slots.js';
+import { assignDefaults, createTransform, fitPowerOfTwo, fitWithin, formatBytes } from './utils.js';
 
 const NAME = 'textureCompress';
 
@@ -256,7 +256,7 @@ export function textureCompress(_options: TextureCompressOptions): Transform {
  * });
  * ```
  */
-export async function compressTexture(texture: Texture, _options: CompressTextureOptions) {
+export async function compressTexture(texture: Texture, _options: CompressTextureOptions): Promise<void> {
 	const options = { ...TEXTURE_COMPRESS_DEFAULTS, ..._options } as Required<CompressTextureOptions>;
 	const encoder = options.encoder as typeof sharp | null;
 

@@ -1,8 +1,8 @@
-import { Accessor, Document, GLTF, Primitive, PropertyType, Transform } from '@gltf-transform/core';
-import { prune } from './prune.js';
-import { assignDefaults, createTransform, deepListAttributes, SetMap, shallowCloneAccessor } from './utils.js';
+import { type Accessor, type Document, type GLTF, Primitive, PropertyType, type Transform } from '@gltf-transform/core';
 import type { MeshoptEncoder } from 'meshoptimizer';
 import { compactAttribute } from './compact-primitive.js';
+import { prune } from './prune.js';
+import { assignDefaults, createTransform, deepListAttributes, SetMap, shallowCloneAccessor } from './utils.js';
 
 const NAME = 'reorder';
 

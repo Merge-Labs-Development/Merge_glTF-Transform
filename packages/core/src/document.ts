@@ -1,5 +1,5 @@
-import type { Extension } from './extension.js';
 import { Graph } from 'property-graph';
+import type { Extension } from './extension.js';
 import {
 	Accessor,
 	Animation,
@@ -12,13 +12,13 @@ import {
 	Node,
 	Primitive,
 	PrimitiveTarget,
-	Property,
+	type Property,
 	Root,
 	Scene,
 	Skin,
 	Texture,
 } from './properties/index.js';
-import { ILogger, Logger } from './utils/index.js';
+import { type ILogger, Logger } from './utils/index.js';
 
 export interface TransformContext {
 	stack: string[];

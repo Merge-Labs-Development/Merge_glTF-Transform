@@ -1,27 +1,27 @@
-import type { Nullable } from '../constants.js';
 import {
 	$attributes,
 	$immutableKeys,
-	Graph,
-	GraphNode,
+	type Graph,
 	GraphEdge,
-	LiteralKeys,
+	GraphNode,
+	type Literal,
+	type LiteralKeys,
+	type Ref,
 	RefList,
-	RefSet,
 	RefMap,
-	Ref,
-	Literal,
+	RefSet,
 } from 'property-graph';
+import type { Nullable } from '../constants.js';
+import type { UnknownRef } from '../utils/index.js';
 import {
 	equalsArray,
 	equalsObject,
 	equalsRef,
-	equalsRefSet,
 	equalsRefMap,
+	equalsRefSet,
 	isArray,
 	isPlainObject,
 } from '../utils/index.js';
-import type { UnknownRef } from '../utils/index.js';
 
 export type PropertyResolver<T extends Property> = (p: T) => T;
 export const COPY_IDENTITY = <T extends Property>(t: T): T => t;
@@ -204,18 +204,18 @@ export abstract class Property<T extends IProperty = IProperty> extends GraphNod
 					const ref = thisValue as unknown as Ref<Property>;
 					ref.getChild().copy(resolve(otherValue.getChild()), resolve);
 				} else {
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					// biome-ignore lint/suspicious/noExplicitAny: TODO
 					this.setRef(key as any, resolve(otherValue.getChild()), otherValue.getAttributes());
 				}
 			} else if (otherValue instanceof RefSet || otherValue instanceof RefList) {
 				for (const ref of otherValue.values()) {
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					// biome-ignore lint/suspicious/noExplicitAny: TODO
 					this.addRef(key as any, resolve(ref.getChild()) as any, ref.getAttributes());
 				}
 			} else if (otherValue instanceof RefMap) {
 				for (const subkey of otherValue.keys()) {
 					const ref = otherValue.get(subkey)!;
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					// biome-ignore lint/suspicious/noExplicitAny: TODO
 					this.setRefMap(key as any, subkey, resolve(ref.getChild()) as any, ref.getAttributes());
 				}
 			} else if (isPlainObject(otherValue)) {
@@ -225,7 +225,7 @@ export abstract class Property<T extends IProperty = IProperty> extends GraphNod
 				otherValue instanceof ArrayBuffer ||
 				ArrayBuffer.isView(otherValue)
 			) {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				// biome-ignore lint/suspicious/noExplicitAny: TODO
 				this[$attributes][key] = (otherValue as unknown as Uint8Array).slice() as any;
 			} else {
 				this[$attributes][key] = otherValue;
@@ -244,7 +244,7 @@ export abstract class Property<T extends IProperty = IProperty> extends GraphNod
 	 * materials with equivalent content — but not necessarily the same specific accessors
 	 * and materials.
 	 */
-	public equals(other: this, skip = EMPTY_SET): boolean {
+	public equals(other: this, skip: Set<string> = EMPTY_SET): boolean {
 		if (this === other) return true;
 		if (this.propertyType !== other.propertyType) return false;
 
@@ -269,7 +269,7 @@ export abstract class Property<T extends IProperty = IProperty> extends GraphNod
 			} else if (isPlainObject(a) || isPlainObject(b)) {
 				if (!equalsObject(a, b)) return false;
 			} else if (isArray(a) || isArray(b)) {
-				if (!equalsArray(a as [], b as [])) return false;
+				if (!equalsArray(a as unknown as [], b as unknown as [])) return false;
 			} else {
 				// Literal.
 				if (a !== b) return false;

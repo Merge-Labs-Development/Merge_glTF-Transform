@@ -2,6 +2,43 @@
 
 ## v4.x
 
+### v4.3 (🚧 Unreleased)
+
+### v4.2
+
+_Special thanks to [Brandon Jones](https://github.com/toji) for contributing the `unwrap()` transform, and for developing [watlas](https://github.com/toji/watlas), a WebAssembly port of [xatlas](https://github.com/jpcy/xatlas)._
+
+**Features:**
+
+- functions,cli: Adds `unwrap()` and `unwrapPrimitives()` to generate texture coordinates [#1660](https://github.com/donmccurdy/glTF-Transform/pull/1660), [#1661](https://github.com/donmccurdy/glTF-Transform/pull/1661), [#1662](https://github.com/donmccurdy/glTF-Transform/pull/1662), [#1663](https://github.com/donmccurdy/glTF-Transform/pull/1663), [#1666](https://github.com/donmccurdy/glTF-Transform/pull/1666)
+
+**Other:**
+
+- fix(cli): Warn when calling 'optimize' with Draco enabled and welding disabled [#1698](https://github.com/donmccurdy/glTF-Transform/pull/1698)
+- fix(functions): Remove side effects from simplify() and weld() [#1685](https://github.com/donmccurdy/glTF-Transform/pull/1685)
+- fix(functions): Deprecate 'keepIndices' option in prune() [#1691](https://github.com/donmccurdy/glTF-Transform/pull/1691)
+- fix(view): Fix light targets in instanced lights [#1491](https://github.com/donmccurdy/glTF-Transform/pull/1491), [#1699](https://github.com/donmccurdy/glTF-Transform/pull/1699)
+- fix(view): Fix emissive intensity on MeshStandardMaterial [#1690](https://github.com/donmccurdy/glTF-Transform/pull/1690)
+
+### v4.1
+
+**Features:**
+
+- functions: Adds `uninstance()` and `createInstanceNodes()` [#1525](https://github.com/donmccurdy/glTF-Transform/pull/1525)
+- cli: Add `ktxdecompress` command for decoding KTX2 textures [#1622](https://github.com/donmccurdy/glTF-Transform/pull/1622)
+
+**Performance:**
+
+- core: Update to property-graph v3 [#1543](https://github.com/donmccurdy/glTF-Transform/pull/1543)
+	- Removes `.dispatch`, `.addEventListener`, and other event-related behaviors from `GraphEdge` class
+
+**Other:**
+
+- fix(core): Handle duplicate URIs on read/write [#1522](https://github.com/donmccurdy/glTF-Transform/pull/1522)
+- fix(functions,cli): Locale-based numeric formatting [#1512](https://github.com/donmccurdy/glTF-Transform/pull/1512)
+- fix(extensions): Fix error decoding sparse accessors in draco-compressed meshes [#1623](https://github.com/donmccurdy/glTF-Transform/pull/1623)
+- chore(repo): Replace ESLint and Prettier with Biome [#1624](https://github.com/donmccurdy/glTF-Transform/pull/1624)
+
 ### v4.0
 
 **Breaking changes:**

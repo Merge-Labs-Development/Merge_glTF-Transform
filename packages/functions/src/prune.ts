@@ -1,27 +1,27 @@
 import {
 	AnimationChannel,
 	ColorUtils,
-	Document,
+	type Document,
 	ExtensionProperty,
-	Graph,
-	ILogger,
+	type Graph,
+	type ILogger,
 	Material,
-	Node,
+	type Node,
 	Primitive,
-	PrimitiveTarget,
-	Property,
+	type PrimitiveTarget,
+	type Property,
 	PropertyType,
 	Root,
 	Scene,
 	Texture,
 	TextureInfo,
-	Transform,
-	vec3,
-	vec4,
+	type Transform,
+	type vec3,
+	type vec4,
 } from '@gltf-transform/core';
 import { mul as mulVec3 } from 'gl-matrix/vec3';
 import { add, create, len, mul, scale, sub } from 'gl-matrix/vec4';
-import { NdArray } from 'ndarray';
+import type { NdArray } from 'ndarray';
 import { getPixels } from 'ndarray-pixels';
 import { getTextureColorSpace } from './get-texture-color-space.js';
 import { listTextureInfoByMaterial } from './list-texture-info.js';
@@ -39,7 +39,11 @@ export interface PruneOptions {
 	keepLeaves?: boolean;
 	/** Whether to keep unused vertex attributes, such as UVs without an assigned texture. */
 	keepAttributes?: boolean;
-	/** Whether to keep redundant mesh indices, where vertex count equals index count. */
+	/**
+	 * Whether to keep redundant mesh indices, where vertex count equals index count.
+	 * @deprecated Disabled. To remove indices, use {@link unweld} or other APIs.
+	 * @privateRemarks TODO(v5): Remove this option.
+	 */
 	keepIndices?: boolean;
 	/** Whether to keep single-color textures that can be converted to material factors. */
 	keepSolidTextures?: boolean;
@@ -110,7 +114,7 @@ export function prune(_options: PruneOptions = PRUNE_DEFAULTS): Transform {
 
 		const onDispose = (event: { target: Property }) => counter.dispose(event.target);
 		// TODO(cleanup): Publish GraphEvent / GraphEventListener types from 'property-graph'.
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		// biome-ignore lint/suspicious/noExplicitAny: TODO
 		graph.addEventListener('node:dispose', onDispose as any);
 
 		// Prune top-down, so that low-level properties like accessors can be removed if the
@@ -184,15 +188,6 @@ export function prune(_options: PruneOptions = PRUNE_DEFAULTS): Transform {
 			}
 		}
 
-		// Prune unused mesh indices.
-		if (!options.keepIndices && propertyTypes.has(PropertyType.ACCESSOR)) {
-			for (const mesh of root.listMeshes()) {
-				for (const prim of mesh.listPrimitives()) {
-					pruneIndices(prim);
-				}
-			}
-		}
-
 		// Pruning animations is a bit more complicated:
 		// (1) Remove channels without target nodes.
 		// (2) Remove animations without channels.
@@ -239,7 +234,7 @@ export function prune(_options: PruneOptions = PRUNE_DEFAULTS): Transform {
 		// use by an Extension are correctly preserved, in the meantime.
 
 		// TODO(cleanup): Publish GraphEvent / GraphEventListener types from 'property-graph'.
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		// biome-ignore lint/suspicious/noExplicitAny: TODO
 		graph.removeEventListener('node:dispose', onDispose as any);
 
 		if (!counter.empty()) {
@@ -264,7 +259,7 @@ class DisposeCounter {
 	public readonly disposed: Record<string, number> = {};
 
 	empty(): boolean {
-		for (const key in this.disposed) return false;
+		for (const _key in this.disposed) return false;
 		return true;
 	}
 
@@ -333,28 +328,6 @@ function pruneAttributes(prim: Primitive | PrimitiveTarget, unused: string[]) {
 	for (const semantic of unused) {
 		prim.setAttribute(semantic, null);
 	}
-}
-
-function pruneIndices(prim: Primitive) {
-	const indices = prim.getIndices();
-	const indicesArray = indices && indices.getArray();
-	const attribute = prim.listAttributes()[0];
-
-	if (!indicesArray || !attribute) {
-		return;
-	}
-
-	if (indices.getCount() !== attribute.getCount()) {
-		return;
-	}
-
-	for (let i = 0, il = indicesArray.length; i < il; i++) {
-		if (i !== indicesArray[i]) {
-			return;
-		}
-	}
-
-	prim.setIndices(null);
 }
 
 /**
@@ -573,7 +546,7 @@ async function getTextureFactor(texture: Texture): Promise<vec4 | null> {
 async function maybeGetPixels(texture: Texture): Promise<NdArray<Uint8Array> | null> {
 	try {
 		return await getPixels(texture.getImage()!, texture.getMimeType());
-	} catch (e) {
+	} catch {
 		return null;
 	}
 }

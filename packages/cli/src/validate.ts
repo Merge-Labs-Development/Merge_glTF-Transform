@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { ILogger } from '@gltf-transform/core';
-import { formatHeader, formatTable, TableFormat } from './util.js';
+import { formatHeader, formatTable, log, TableFormat } from './util.js';
 
 export interface ValidateOptions {
 	limit: number;
@@ -25,7 +25,7 @@ export async function validate(input: string, options: ValidateOptions, logger: 
 		.validateBytes(new Uint8Array(buffer), {
 			maxIssues: options.limit,
 			ignoredIssues: options.ignore,
-			externalResourceFunction: (uri: string) => {
+			externalResourceFunction: async (uri: string) => {
 				uri = path.resolve(path.dirname(input), decodeURIComponent(uri));
 				return fs.readFile(uri).catch((err) => {
 					logger.warn(`Unable to validate "${uri}": ${err.toString()}.`);
@@ -64,12 +64,12 @@ async function printTable(
 	logger: ILogger,
 	format: TableFormat,
 ): Promise<void> {
-	console.log(formatHeader(header));
+	log(formatHeader(header));
 	const messages = report.issues.messages.filter((msg) => msg.severity === severity);
 	if (messages.length) {
-		console.log(await formatTable(format, HEADER, messages.map(Object.values)));
+		log(await formatTable(format, HEADER, messages.map(Object.values)));
 	} else {
 		logger.info(`No ${header}s found.`);
 	}
-	console.log('\n');
+	log('\n');
 }

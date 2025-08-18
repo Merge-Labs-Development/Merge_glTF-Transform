@@ -1,10 +1,10 @@
 import type { Extension, NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { resolve } from 'path';
 import draco3d from 'draco3dgltf';
-import { MeshoptEncoder, MeshoptDecoder } from 'meshoptimizer';
+import { MeshoptDecoder, MeshoptEncoder } from 'meshoptimizer';
+import { resolve } from 'path';
+import type { program } from './program.js';
 import type { Session } from './session.js';
-import { program } from './program.js';
 
 interface Config {
 	extensions: (typeof Extension)[];
@@ -47,7 +47,7 @@ export function createDefaultConfig(): Promise<Config> {
 	});
 }
 
-export function loadConfig(path: string) {
+export function loadConfig(path: string): void {
 	path = resolve(process.cwd(), path);
 	path = `file:${path}`; // Required on Windows.
 	customConfigPromise = import(path).then(validateConfig) as Promise<ConfigModule>;

@@ -1,15 +1,24 @@
-import type { JSONDocument, ILogger, NodeIO, WebIO } from '@gltf-transform/core';
+import type { Document, ILogger, JSONDocument, NodeIO, WebIO } from '@gltf-transform/core';
+import type { Packet } from '@gltf-transform/extensions';
 import {
-	InspectAnimationReport,
-	InspectMaterialReport,
-	InspectMeshReport,
-	InspectPropertyReport,
-	InspectSceneReport,
-	InspectTextureReport,
+	type InspectAnimationReport,
+	type InspectMaterialReport,
+	type InspectMeshReport,
+	type InspectPropertyReport,
+	type InspectSceneReport,
+	type InspectTextureReport,
 	inspect as inspectDoc,
 } from '@gltf-transform/functions';
-import { formatBytes, formatHeader, formatLong, formatParagraph, formatTable, formatXMP, TableFormat } from './util.js';
-import type { Packet } from '@gltf-transform/extensions';
+import {
+	formatBytes,
+	formatHeader,
+	formatLong,
+	formatParagraph,
+	formatTable,
+	formatXMP,
+	log,
+	TableFormat,
+} from './util.js';
 
 type AnyPropertyReport =
 	| InspectSceneReport
@@ -27,8 +36,8 @@ export async function inspect(
 	// Summary (does not require parsing).
 	const extensionsUsed = jsonDoc.json.extensionsUsed || [];
 	const extensionsRequired = jsonDoc.json.extensionsRequired || [];
-	console.log(formatHeader('overview'));
-	console.log(
+	log(formatHeader('overview'));
+	log(
 		(await formatTable(
 			format,
 			['key', 'value'],
@@ -42,7 +51,7 @@ export async function inspect(
 	);
 
 	// Parse.
-	let document;
+	let document: Document;
 	try {
 		document = await io.readJSON(jsonDoc);
 	} catch (e) {
@@ -53,8 +62,8 @@ export async function inspect(
 	// XMP report.
 	const rootPacket = document.getRoot().getExtension('KHR_xmp_json_ld') as Packet | null;
 	if (rootPacket && rootPacket.listProperties().length > 0) {
-		console.log(formatHeader('metadata'));
-		console.log(
+		log(formatHeader('metadata'));
+		log(
 			(await formatTable(
 				format,
 				['key', 'value'],
@@ -80,9 +89,9 @@ async function reportSection(
 ) {
 	const properties = section.properties;
 
-	console.log(formatHeader(type));
+	log(formatHeader(type));
 	if (!properties.length) {
-		console.log(`No ${type} found.\n`);
+		log(`No ${type} found.\n`);
 		return;
 	}
 
@@ -91,13 +100,13 @@ async function reportSection(
 	});
 	const header = Object.keys(formattedRecords[0]);
 	const rows = formattedRecords.map((p: Record<string, string>) => Object.values(p));
-	const footnotes = format !== TableFormat.CSV ? getFootnotes(type, rows, header) : [];
-	console.log(await formatTable(format, header, rows));
-	if (footnotes.length) console.log('\n' + footnotes.join('\n'));
+	const footnotes = format !== TableFormat.CSV ? getFootnotes(type, header) : [];
+	log(await formatTable(format, header, rows));
+	if (footnotes.length) log('\n' + footnotes.join('\n'));
 	if (section.warnings) {
 		section.warnings.forEach((warning) => logger.warn(formatParagraph(warning)));
 	}
-	console.log('\n');
+	log('\n');
 }
 
 function formatPropertyReport(property: AnyPropertyReport, index: number, format: TableFormat): Record<string, string> {
@@ -119,7 +128,7 @@ function formatPropertyReport(property: AnyPropertyReport, index: number, format
 	return row as Record<string, string>;
 }
 
-function getFootnotes(type: string, rows: string[][], header: string[]): string[] {
+function getFootnotes(type: string, header: string[]): string[] {
 	const footnotes = [];
 	if (type === 'scenes') {
 		for (let i = 0; i < header.length; i++) {

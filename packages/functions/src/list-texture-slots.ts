@@ -1,4 +1,4 @@
-import { Document, Texture } from '@gltf-transform/core';
+import { Document, type Texture } from '@gltf-transform/core';
 
 /**
  * Returns names of all texture slots using the given texture.
@@ -7,7 +7,7 @@ import { Document, Texture } from '@gltf-transform/core';
  *
  * ```js
  * const slots = listTextureSlots(texture);
- * // → ['occlusionTexture', 'metallicRoughnesTexture']
+ * // → ['occlusionTexture', 'metallicRoughnessTexture']
  * ```
  */
 export function listTextureSlots(texture: Texture): string[] {

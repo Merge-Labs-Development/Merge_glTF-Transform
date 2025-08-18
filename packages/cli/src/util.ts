@@ -1,10 +1,10 @@
-import { spawn as _spawn } from 'child_process';
 import type { ChildProcess } from 'child_process';
-import _commandExists from 'command-exists';
+import { spawn as _spawn } from 'child_process';
 import CLITable from 'cli-table3';
+import _commandExists from 'command-exists';
 import { stringify } from 'csv-stringify';
-import stripAnsi from 'strip-ansi';
 import micromatch from 'micromatch';
+import stripAnsi from 'strip-ansi';
 
 // Constants.
 
@@ -28,17 +28,19 @@ export function regexFromArray(values: string[]): RegExp {
 
 // Mocks for tests.
 
-export let spawn = _spawn;
+export let spawn: typeof _spawn = _spawn;
 // See https://github.com/mathisonian/command-exists/issues/22
-export let commandExists = (cmd: string) => _commandExists(cmd).catch(() => false);
-export let waitExit = _waitExit;
+export let commandExists = (cmd: string): Promise<string | boolean> => _commandExists(cmd).catch(() => false);
+export let waitExit: typeof _waitExit = _waitExit;
+
+export let log: typeof console.log = console.log;
 
 export function mockSpawn(_spawn: unknown): void {
 	spawn = _spawn as typeof spawn;
 }
 
 export function mockCommandExists(_commandExists: (n: string) => Promise<boolean>): void {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// biome-ignore lint/suspicious/noExplicitAny: TODO
 	commandExists = _commandExists as any;
 }
 
@@ -65,10 +67,15 @@ export async function _waitExit(process: ChildProcess): Promise<[unknown, string
 	return [status, stdout, stderr];
 }
 
+export function mockConsoleLog(_log: (...data: unknown[]) => void): void {
+	log = _log;
+}
+
 // Formatting.
 
+const _longFormatter = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
 export function formatLong(x: number): string {
-	return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+	return _longFormatter.format(x);
 }
 
 export function formatBytes(bytes: number, decimals = 2): string {

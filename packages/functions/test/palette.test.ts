@@ -1,9 +1,9 @@
-import test from 'ava';
-import { getPixels } from 'ndarray-pixels';
-import { Document, GLTF, Material, vec4 } from '@gltf-transform/core';
+import { Document, type GLTF, type Material, type vec4 } from '@gltf-transform/core';
 import { KHRMaterialsSpecular } from '@gltf-transform/extensions';
 import { palette } from '@gltf-transform/functions';
 import { logger } from '@gltf-transform/test-utils';
+import test from 'ava';
+import { getPixels } from 'ndarray-pixels';
 
 test('basic', async (t) => {
 	const document = new Document().setLogger(logger);
@@ -152,7 +152,7 @@ test('pixel values', async (t) => {
 	t.deepEqual(baseColorPixels.shape, [8, 2, 4], 'dimensions');
 	t.deepEqual(
 		Array.from(baseColorPixels.data as Uint8Array),
-		// prettier-ignore
+		// biome-ignore format: Readability.
 		[
 			// row 1
 			128, 128, 128, 255,

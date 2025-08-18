@@ -1,9 +1,9 @@
+import { Document, Primitive as PrimitiveDef } from '@gltf-transform/core';
+import { KHRMaterialsClearcoat, KHRMaterialsUnlit } from '@gltf-transform/extensions';
+import { DocumentView, NullImageProvider } from '@gltf-transform/view';
 import test from 'ava';
 import { JSDOM } from 'jsdom';
-import { Document, Primitive as PrimitiveDef } from '@gltf-transform/core';
-import { DocumentView, NullImageProvider } from '@gltf-transform/view';
-import { KHRMaterialsClearcoat, KHRMaterialsUnlit } from '@gltf-transform/extensions';
-import {
+import type {
 	BufferGeometry,
 	LineBasicMaterial,
 	LineSegments,
@@ -109,7 +109,6 @@ test('MaterialSubject | dispose', async (t) => {
 	t.is(disposed.size, 2, 'dispose count (2/3)');
 	t.truthy(disposed.has(pointsMaterial), 'dispose PointsMaterial');
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const [_, lines] = scene.getObjectByName('Mesh')!.children as [unknown, LineSegments];
 	const lineMaterial = lines.material as LineBasicMaterial;
 	lineMaterial.addEventListener('dispose', () => disposed.add(lineMaterial));

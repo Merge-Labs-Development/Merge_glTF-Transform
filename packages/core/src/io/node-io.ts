@@ -1,8 +1,7 @@
 import { Format } from '../constants.js';
 import type { Document } from '../document.js';
-import { FileUtils } from '../utils/index.js';
+import { FileUtils, HTTPUtils } from '../utils/index.js';
 import { PlatformIO } from './platform-io.js';
-import { HTTPUtils } from '../utils/index.js';
 
 /**
  * *I/O service for Node.js.*
@@ -29,13 +28,12 @@ import { HTTPUtils } from '../utils/index.js';
  * ```
  *
  * By default, NodeIO can only read/write paths on disk. To enable network requests, provide a Fetch
- * API implementation (such as [`node-fetch`](https://www.npmjs.com/package/node-fetch)) and enable
+ * API implementation (global [`fetch()`](https://nodejs.org/api/globals.html#fetch) is stable in
+ * Node.js v21+, or [`node-fetch`](https://www.npmjs.com/package/node-fetch) may be installed) and enable
  * {@link NodeIO.setAllowNetwork setAllowNetwork}. Network requests may optionally be configured with
  * [RequestInit](https://developer.mozilla.org/en-US/docs/Web/API/fetch#parameters) parameters.
  *
  * ```typescript
- * import fetch from 'node-fetch';
- *
  * const io = new NodeIO(fetch, {headers: {...}}).setAllowNetwork(true);
  *
  * const document = await io.read('https://example.com/path/to/model.glb');
@@ -60,7 +58,7 @@ export class NodeIO extends PlatformIO {
 	 * @param fetch Implementation of Fetch API.
 	 * @param fetchConfig Configuration object for Fetch API.
 	 */
-	constructor(_fetch: unknown = null, _fetchConfig = HTTPUtils.DEFAULT_INIT) {
+	constructor(_fetch: unknown = null, _fetchConfig: RequestInit = HTTPUtils.DEFAULT_INIT) {
 		super();
 		this._fetch = _fetch as typeof fetch | null;
 		this._fetchConfig = _fetchConfig;
@@ -177,7 +175,7 @@ export class NodeIO extends PlatformIO {
 
 	/** @internal */
 	private async _writeGLB(uri: string, doc: Document): Promise<void> {
-		const buffer = Buffer.from(await this.writeBinary(doc));
+		const buffer = await this.writeBinary(doc);
 		await this._fs.writeFile(uri, buffer);
 		this.lastWriteBytes = buffer.byteLength;
 	}

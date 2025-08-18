@@ -1,8 +1,8 @@
 import type { Document, Transform } from '@gltf-transform/core';
 import { EXTMeshoptCompression } from '@gltf-transform/extensions';
 import type { MeshoptEncoder } from 'meshoptimizer';
+import { QUANTIZE_DEFAULTS, type QuantizeOptions, quantize } from './quantize.js';
 import { reorder } from './reorder.js';
-import { QUANTIZE_DEFAULTS, QuantizeOptions, quantize } from './quantize.js';
 import { assignDefaults, createTransform } from './utils.js';
 
 export interface MeshoptOptions extends Omit<QuantizeOptions, 'pattern' | 'patternTargets'> {
@@ -39,6 +39,8 @@ const NAME = 'meshopt';
  *   meshopt({encoder: MeshoptEncoder, level: 'medium'})
  * );
  * ```
+ *
+ * Compression is deferred until generating output with an I/O class.
  *
  * @category Transforms
  */

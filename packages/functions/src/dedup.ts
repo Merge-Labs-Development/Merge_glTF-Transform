@@ -1,17 +1,17 @@
 import {
-	Accessor,
+	type Accessor,
 	BufferUtils,
-	Document,
-	Material,
-	Mesh,
+	type Document,
+	type Material,
+	type Mesh,
 	Primitive,
-	PrimitiveTarget,
-	Property,
+	type PrimitiveTarget,
+	type Property,
 	PropertyType,
 	Root,
-	Skin,
-	Texture,
-	Transform,
+	type Skin,
+	type Texture,
+	type Transform,
 } from '@gltf-transform/core';
 import { assignDefaults, createTransform, shallowEqualsArray } from './utils.js';
 

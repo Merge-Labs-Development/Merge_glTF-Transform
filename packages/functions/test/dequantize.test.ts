@@ -1,6 +1,15 @@
-import test from 'ava';
-import { bbox, getBounds, Document, Logger, Primitive, PrimitiveTarget, Scene, vec3 } from '@gltf-transform/core';
+import {
+	type bbox,
+	Document,
+	getBounds,
+	Logger,
+	Primitive,
+	type PrimitiveTarget,
+	type Scene,
+	type vec3,
+} from '@gltf-transform/core';
 import { dequantize } from '@gltf-transform/functions';
+import test from 'ava';
 
 const logger = new Logger(Logger.Verbosity.WARN);
 

@@ -1,5 +1,5 @@
+import { Document, type Property } from '@gltf-transform/core';
 import test from 'ava';
-import { Document, Property } from '@gltf-transform/core';
 
 const toType = (p: Property): string => p.propertyType;
 

@@ -1,4 +1,3 @@
-import { PropertyType, ExtensionProperty as ExtensionPropertyDef } from '@gltf-transform/core';
 import type {
 	Accessor as AccessorDef,
 	Material as MaterialDef,
@@ -10,25 +9,26 @@ import type {
 	Skin as SkinDef,
 	Texture as TextureDef,
 } from '@gltf-transform/core';
-import type { Light as LightDef, InstancedMesh as InstancedMeshDef } from '@gltf-transform/extensions';
-import type { Object3D, BufferAttribute, Group, Texture, Material, Skeleton, InstancedMesh } from 'three';
+import { ExtensionProperty as ExtensionPropertyDef, PropertyType } from '@gltf-transform/core';
+import type { InstancedMesh as InstancedMeshDef, Light as LightDef } from '@gltf-transform/extensions';
+import type { BufferAttribute, Group, InstancedMesh, Material, Object3D, Skeleton, Texture } from 'three';
+import type { LightLike, MeshLike, THREEObject } from './constants.js';
+import { DefaultImageProvider, type ImageProvider } from './ImageProvider.js';
+import { MaterialPool, Pool, SingleUserPool, TexturePool } from './pools/index.js';
 import {
 	AccessorSubject,
-	Subject,
 	ExtensionSubject,
+	InstancedMeshSubject,
+	LightSubject,
 	MaterialSubject,
 	MeshSubject,
 	NodeSubject,
 	PrimitiveSubject,
 	SceneSubject,
 	SkinSubject,
+	type Subject,
 	TextureSubject,
-	LightSubject,
-	InstancedMeshSubject,
 } from './subjects/index.js';
-import type { LightLike, MeshLike, THREEObject } from './constants.js';
-import { DefaultImageProvider, ImageProvider } from './ImageProvider.js';
-import { MaterialPool, SingleUserPool, Pool, TexturePool } from './pools/index.js';
 
 export interface DocumentViewSubjectAPI {
 	readonly accessorPool: Pool<BufferAttribute>;
@@ -55,9 +55,9 @@ export interface DocumentViewSubjectAPI {
 	bind(def: PrimitiveDef): PrimitiveSubject;
 	bind(def: SceneDef): SceneSubject;
 	bind(def: SkinDef): SkinSubject;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// biome-ignore lint/suspicious/noExplicitAny: TODO
 	bind(def: PropertyDef): Subject<PropertyDef, any>;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// biome-ignore lint/suspicious/noExplicitAny: TODO
 	bind(def: PropertyDef | null): Subject<PropertyDef, any> | null;
 
 	recordOutputValue(def: PropertyDef, value: THREEObject): void;
@@ -73,7 +73,7 @@ export interface DocumentViewConfig {
 /** @internal */
 export class DocumentViewImpl implements DocumentViewSubjectAPI {
 	private _disposed = false;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// biome-ignore lint/suspicious/noExplicitAny: TODO
 	private _subjects = new Map<PropertyDef, Subject<PropertyDef, any>>();
 	private _outputValues = new WeakMap<PropertyDef, Set<object>>();
 	private _outputValuesInverse = new WeakMap<object, PropertyDef>();
@@ -96,7 +96,7 @@ export class DocumentViewImpl implements DocumentViewSubjectAPI {
 		this.imageProvider = config.imageProvider || new DefaultImageProvider();
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// biome-ignore lint/suspicious/noExplicitAny: TODO
 	private _addSubject(subject: Subject<PropertyDef, any>): void {
 		const def = subject.def;
 		this._subjects.set(def, subject);
@@ -115,14 +115,14 @@ export class DocumentViewImpl implements DocumentViewSubjectAPI {
 	bind(def: PrimitiveDef): PrimitiveSubject;
 	bind(def: SceneDef): SceneSubject;
 	bind(def: SkinDef): SkinSubject;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// biome-ignore lint/suspicious/noExplicitAny: TODO
 	bind(def: PropertyDef): Subject<PropertyDef, any>;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// biome-ignore lint/suspicious/noExplicitAny: TODO
 	bind(def: PropertyDef | null): Subject<PropertyDef, any> | null {
 		if (!def) return null;
 		if (this._subjects.has(def)) return this._subjects.get(def)!;
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		// biome-ignore lint/suspicious/noExplicitAny: TODO
 		let subject: Subject<PropertyDef, any>;
 		switch (def.propertyType) {
 			case PropertyType.ACCESSOR:
@@ -249,7 +249,6 @@ export class DocumentViewImpl implements DocumentViewSubjectAPI {
 		// First, to prevent updates during disposal.
 		this._disposed = true;
 
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		for (const [_, subject] of this._subjects) subject.dispose();
 		this._subjects.clear();
 

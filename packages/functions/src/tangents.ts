@@ -1,4 +1,12 @@
-import { Accessor, Document, ILogger, Primitive, Transform, TypedArray, uuid } from '@gltf-transform/core';
+import {
+	type Accessor,
+	type Document,
+	type ILogger,
+	Primitive,
+	type Transform,
+	type TypedArray,
+	uuid,
+} from '@gltf-transform/core';
 import { assignDefaults, createTransform } from './utils.js';
 
 const NAME = 'tangents';
@@ -22,7 +30,7 @@ const TANGENTS_DEFAULTS: Required<Omit<TangentsOptions, 'generateTangents'>> = {
 
 /**
  * Generates MikkTSpace vertex tangents for mesh primitives, which may fix rendering issues
- * occuring with some baked normal maps. Requires access to the [mikktspace](https://github.com/donmccurdy/mikktspace-wasm)
+ * occurring with some baked normal maps. Requires access to the [mikktspace](https://github.com/donmccurdy/mikktspace-wasm)
  * WASM package, or equivalent.
  *
  * Example:

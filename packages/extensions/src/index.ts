@@ -1,3 +1,4 @@
+import type { Extension } from '@gltf-transform/core';
 import { EXTMeshGPUInstancing } from './ext-mesh-gpu-instancing/index.js';
 import { EXTMeshoptCompression } from './ext-meshopt-compression/index.js';
 import { EXTTextureAVIF } from './ext-texture-avif/index.js';
@@ -23,7 +24,7 @@ import { KHRTextureBasisu } from './khr-texture-basisu/index.js';
 import { KHRTextureTransform } from './khr-texture-transform/index.js';
 import { KHRXMP } from './khr-xmp-json-ld/index.js';
 
-export const KHRONOS_EXTENSIONS = [
+export const KHRONOS_EXTENSIONS: (typeof Extension)[] = [
 	KHRDracoMeshCompression,
 	KHRLightsPunctual,
 	KHRMaterialsAnisotropy,
@@ -46,7 +47,7 @@ export const KHRONOS_EXTENSIONS = [
 	KHRXMP,
 ];
 
-export const ALL_EXTENSIONS = [
+export const ALL_EXTENSIONS: (typeof Extension)[] = [
 	EXTMeshGPUInstancing,
 	EXTMeshoptCompression,
 	EXTTextureAVIF,
@@ -67,9 +68,9 @@ export * from './khr-materials-dispersion/index.js';
 export * from './khr-materials-emissive-strength/index.js';
 export * from './khr-materials-ior/index.js';
 export * from './khr-materials-iridescence/index.js';
+export * from './khr-materials-pbr-specular-glossiness/index.js';
 export * from './khr-materials-sheen/index.js';
 export * from './khr-materials-specular/index.js';
-export * from './khr-materials-pbr-specular-glossiness/index.js';
 export * from './khr-materials-transmission/index.js';
 export * from './khr-materials-unlit/index.js';
 export * from './khr-materials-variants/index.js';

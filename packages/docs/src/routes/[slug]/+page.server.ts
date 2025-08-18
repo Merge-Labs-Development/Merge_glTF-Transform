@@ -1,18 +1,11 @@
 import { error } from '@sveltejs/kit';
+import { render } from 'svelte/server';
 
 export const load = async ({ params }) => {
-	let html = '';
-	let metadata;
-
 	try {
-		const page = await import(`../../lib/pages/${params.slug}.md`);
-		html = page.default.render().html;
-		metadata = page.metadata;
-	} catch (e) {
-		//
+		const { default: Page } = await import(`../../lib/pages/${params.slug}.md`);
+		return render(Page);
+	} catch {
+		error(404, 'Not found');
 	}
-
-	if (!html) error(404, 'Not found');
-
-	return { html, metadata };
 };

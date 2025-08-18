@@ -11,11 +11,19 @@
 		},
 		"esModuleInterop": true,
 		"moduleResolution": "nodenext",
-		"lib": ["es2020", "dom"],
-		"target": "es2020",
+		"lib": ["es2022", "dom"],
+		"target": "es2022",
 		"module": "nodenext",
+		"isolatedModules": true,
+		// TODO(v5): Blocked on Microbundle or https://github.com/microsoft/TypeScript/issues/58262.
+		// "isolatedDeclarations": true,
+		"allowJs": false,
 		"declaration": true,
 		"stripInternal": true,
+		// TODO(v5): Blocked on major version.
+		// "erasableSyntaxOnly": true,
+		"verbatimModuleSyntax": true,
+		"useDefineForClassFields": true,
 
 		// Components of "strict" mode.
 		"alwaysStrict": true,

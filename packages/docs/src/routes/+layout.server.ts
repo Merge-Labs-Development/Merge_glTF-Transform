@@ -1,6 +1,6 @@
-import type { LayoutServerLoad } from './$types';
-import { parser } from '$lib/server/model';
 import type { Node } from 'ts-morph';
+import { parser } from '$lib/server/model';
+import type { LayoutServerLoad } from './$types';
 
 export const prerender = true;
 
@@ -55,7 +55,11 @@ export const load: LayoutServerLoad = () => {
 				{
 					title: 'Resources',
 					items: [
-						{ text: 'Contributing ', href: '/contributing' },
+						{
+							text: 'Contributing ',
+							external: true,
+							href: 'https://github.com/donmccurdy/glTF-Transform/blob/main/CONTRIBUTING.md',
+						},
 						{ text: 'Credits ', href: '/credits' },
 						{
 							text: 'GitHub',
@@ -122,13 +126,13 @@ export const load: LayoutServerLoad = () => {
 						{
 							title: 'Khronos Extensions',
 							items: extensionsExports.filter(
-								({ text, kind }) => text.startsWith('KHR') && kind === 'ClassDeclaration'
+								({ text, kind }) => text.startsWith('KHR') && kind === 'ClassDeclaration',
 							),
 						},
 						{
 							title: 'Vendor Extensions',
 							items: extensionsExports.filter(
-								({ text, kind }) => text.startsWith('EXT') && kind === 'ClassDeclaration'
+								({ text, kind }) => text.startsWith('EXT') && kind === 'ClassDeclaration',
 							),
 						},
 					],
@@ -144,7 +148,7 @@ export const load: LayoutServerLoad = () => {
 						{
 							title: 'Functions',
 							items: functionsExports.filter(
-								({ category, kind }) => category !== 'Transforms' && kind === 'FunctionDeclaration'
+								({ category, kind }) => category !== 'Transforms' && kind === 'FunctionDeclaration',
 							),
 						},
 					],

@@ -1,5 +1,4 @@
-import test from 'ava';
-import { getBounds, Document, Primitive } from '@gltf-transform/core';
+import { Document, getBounds, Primitive } from '@gltf-transform/core';
 import { join, quantize, transformPrimitive } from '@gltf-transform/functions';
 import {
 	createLineLoopPrim,
@@ -8,9 +7,10 @@ import {
 	createTriangleFanPrim,
 	createTriangleStripPrim,
 	logger,
-	roundBbox,
 	mat4,
+	roundBbox,
 } from '@gltf-transform/test-utils';
+import test from 'ava';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 

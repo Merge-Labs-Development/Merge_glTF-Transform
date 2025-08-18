@@ -1,81 +1,85 @@
-import { URL } from 'url';
-import { promises as fs, readFileSync } from 'fs';
-import micromatch from 'micromatch';
-import { gzip } from 'node-gzip';
-import fetch from 'node-fetch';
-import mikktspace from 'mikktspace';
-import { MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
-import { ready as resampleReady, resample as resampleWASM } from 'keyframe-resample';
-import { Logger, NodeIO, PropertyType, VertexLayout, vec2, Transform } from '@gltf-transform/core';
+import { type Logger, NodeIO, PropertyType, type Transform, VertexLayout, type vec2 } from '@gltf-transform/core';
 import {
-	CenterOptions,
-	InstanceOptions,
-	INSTANCE_DEFAULTS,
-	PartitionOptions,
-	PruneOptions,
-	QUANTIZE_DEFAULTS,
-	ResampleOptions,
-	SequenceOptions,
-	TextureResizeFilter,
-	UnweldOptions,
-	WeldOptions,
+	type CenterOptions,
 	center,
+	DRACO_DEFAULTS,
+	type DracoOptions,
 	dedup,
+	dequantize,
+	draco,
+	type FlattenOptions,
+	flatten,
+	INSTANCE_DEFAULTS,
+	type InstanceOptions,
 	instance,
+	JOIN_DEFAULTS,
+	type JoinOptions,
+	join,
+	MESHOPT_DEFAULTS,
+	meshopt,
 	metalRough,
+	PALETTE_DEFAULTS,
+	type PaletteOptions,
+	type PartitionOptions,
+	PRUNE_DEFAULTS,
+	type PruneOptions,
+	palette,
 	partition,
 	prune,
+	QUANTIZE_DEFAULTS,
 	quantize,
-	resample,
-	sequence,
-	tangents,
-	unweld,
-	weld,
+	type ResampleOptions,
 	reorder,
-	dequantize,
-	unlit,
-	meshopt,
-	DRACO_DEFAULTS,
-	draco,
-	DracoOptions,
-	simplify,
+	resample,
+	type SequenceOptions,
 	SIMPLIFY_DEFAULTS,
-	textureCompress,
-	FlattenOptions,
-	flatten,
-	JOIN_DEFAULTS,
-	join,
-	JoinOptions,
+	type SparseOptions,
+	sequence,
+	simplify,
 	sparse,
-	SparseOptions,
-	palette,
-	PaletteOptions,
-	PALETTE_DEFAULTS,
-	MESHOPT_DEFAULTS,
 	TEXTURE_COMPRESS_SUPPORTED_FORMATS,
-	PRUNE_DEFAULTS,
+	TextureResizeFilter,
+	tangents,
+	textureCompress,
+	UNWRAP_DEFAULTS,
+	type UnweldOptions,
+	unlit,
+	unweld,
+	unwrap,
+	type WeldOptions,
+	weld,
 } from '@gltf-transform/functions';
+import { promises as fs, readFileSync } from 'fs';
+import { ready as resampleReady, resample as resampleWASM } from 'keyframe-resample';
+import { MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
+import micromatch from 'micromatch';
+import mikktspace from 'mikktspace';
+import fetch from 'node-fetch'; // TODO(deps): Replace when v20 reaches end of maintenance.
+import { gzip } from 'node-gzip';
+import { URL } from 'url';
+import * as watlas from 'watlas';
+import { getConfig, loadConfig } from './config.js';
 import { inspect } from './inspect.js';
+import { program, Validator } from './program.js';
+import { Session } from './session.js';
 import {
 	ETC1S_DEFAULTS,
 	Filter,
-	Mode,
-	UASTC_DEFAULTS,
+	ktxdecompress,
 	ktxfix,
+	Mode,
 	merge,
 	toktx,
-	XMPOptions,
+	UASTC_DEFAULTS,
+	type XMPOptions,
 	xmp,
 } from './transforms/index.js';
-import { formatBytes, MICROMATCH_OPTIONS, underline, TableFormat, dim, regexFromArray } from './util.js';
-import { Session } from './session.js';
-import { ValidateOptions, validate } from './validate.js';
-import { getConfig, loadConfig } from './config.js';
-import { Validator, program } from './program.js';
+import { dim, formatBytes, MICROMATCH_OPTIONS, regexFromArray, TableFormat, underline } from './util.js';
+import { type ValidateOptions, validate } from './validate.js';
 
 let io: NodeIO;
 
-const programReady = new Promise<void>((resolve) => {
+const programReady: Promise<void> = new Promise<void>((resolve) => {
 	// Manually detect and handle --config, before program actually runs.
 	if (process.argv.includes('--config')) {
 		loadConfig(process.argv[process.argv.indexOf('--config') + 1]);
@@ -294,10 +298,6 @@ commands or using the scripting API.
 		validator: Validator.BOOLEAN,
 		default: true,
 	})
-	.option('--prune-leaves <bool>', 'Whether to prune empty leaf nodes.', {
-		validator: Validator.BOOLEAN,
-		default: true,
-	})
 	.option(
 		'--prune-solid-textures <bool>',
 		'Whether to prune solid (single-color) textures, converting them to material factors.',
@@ -336,7 +336,19 @@ commands or using the scripting API.
 		validator: Validator.BOOLEAN,
 		default: true,
 	})
+	.option('--join-meshes <bool>', 'Join distinct meshes and nodes. Requires `--join`.', {
+		validator: Validator.BOOLEAN,
+		default: !JOIN_DEFAULTS.keepMeshes,
+	})
+	.option('--join-named <bool>', 'Join named meshes and nodes. Requires `--join`.', {
+		validator: Validator.BOOLEAN,
+		default: !JOIN_DEFAULTS.keepNamed,
+	})
 	.option('--weld <bool>', 'Merge equivalent vertices. Required when simplifying geometry.', {
+		validator: Validator.BOOLEAN,
+		default: true,
+	})
+	.option('--resample <bool>', 'Resample animations, losslessly deduplicating keyframes', {
 		validator: Validator.BOOLEAN,
 		default: true,
 	})
@@ -353,13 +365,15 @@ commands or using the scripting API.
 			simplifyLockBorder: boolean;
 			prune: boolean;
 			pruneAttributes: boolean;
-			pruneLeaves: boolean;
 			pruneSolidTextures: boolean;
 			compress: 'draco' | 'meshopt' | 'quantize' | false;
 			textureCompress: 'ktx2' | 'webp' | 'webp' | 'auto' | false;
 			textureSize: number;
 			flatten: boolean;
+			resample: boolean;
 			join: boolean;
+			joinNamed: boolean;
+			joinMeshes: boolean;
 			weld: boolean;
 		};
 
@@ -378,7 +392,14 @@ commands or using the scripting API.
 		}
 
 		if (opts.flatten) transforms.push(flatten());
-		if (opts.join) transforms.push(join());
+		if (opts.join) {
+			transforms.push(
+				join({
+					keepNamed: !opts.joinNamed,
+					keepMeshes: !opts.joinMeshes,
+				}),
+			);
+		}
 		if (opts.weld) transforms.push(weld());
 
 		if (opts.simplify) {
@@ -392,20 +413,20 @@ commands or using the scripting API.
 			);
 		}
 
-		transforms.push(resample({ ready: resampleReady, resample: resampleWASM }));
+		if (opts.resample) transforms.push(resample({ ready: resampleReady, resample: resampleWASM }));
 
 		if (opts.prune) {
 			transforms.push(
 				prune({
 					keepAttributes: !opts.pruneAttributes,
 					keepIndices: false,
-					keepLeaves: !opts.pruneLeaves,
+					keepLeaves: false,
 					keepSolidTextures: !opts.pruneSolidTextures,
 				}),
 			);
 		}
 
-		//transforms.push(sparse());
+		transforms.push(sparse());
 
 		// Texture compression.
 		if (opts.textureCompress === 'ktx2') {
@@ -448,6 +469,9 @@ commands or using the scripting API.
 		// Mesh compression last. Doesn't matter here, but in one-off CLI
 		// commands we want to avoid recompressing mesh data.
 		if (opts.compress === 'draco') {
+			if (opts.weld === false) {
+				logger.warn('Ignoring --no-weld, required for Draco compression.');
+			}
 			transforms.push(draco());
 		} else if (opts.compress === 'meshopt') {
 			transforms.push(meshopt({ encoder: MeshoptEncoder, level: opts.meshoptLevel }));
@@ -755,11 +779,11 @@ EXT_mesh_gpu_instancing.
 	)
 	.argument('<input>', INPUT_DESC)
 	.argument('<output>', OUTPUT_DESC)
-	.option('--keepMeshes <bool>', 'Prevents joining distinct Meshes and Nodes.', {
+	.option('--keepMeshes <bool>', 'Prevents joining distinct meshes and nodes.', {
 		validator: Validator.BOOLEAN,
 		default: JOIN_DEFAULTS.keepMeshes,
 	})
-	.option('--keepNamed <bool>', 'Prevents joining named Meshes and Nodes.', {
+	.option('--keepNamed <bool>', 'Prevents joining named meshes and nodes.', {
 		validator: Validator.BOOLEAN,
 		default: JOIN_DEFAULTS.keepNamed,
 	})
@@ -1000,7 +1024,7 @@ program
 De-index geometry, disconnecting any shared vertices. This tends to increase
 the file size of the geometry and decrease efficiency, and so is not
 recommended unless disconnected vertices ("vertex soup") are required for some
-paricular software application.
+particular software application.
 	`.trim(),
 	)
 	.argument('<input>', INPUT_DESC)
@@ -1042,6 +1066,35 @@ compute MikkTSpace tangents at runtime.
 			tangents({ generateTangents: mikktspace.generateTangents, ...options }),
 			weld(),
 		),
+	);
+
+// UNWRAP
+program
+	.command('unwrap', 'Generate texcoords')
+	.help(
+		`
+Generates texture coordinates for the given attribute set index.
+
+Uses xatlas (https://github.com/jpcy/xatlas) to generate unique texture
+coordinates suitable for baking lightmaps or texture painting.
+	`.trim(),
+	)
+	.argument('<input>', INPUT_DESC)
+	.argument('<output>', OUTPUT_DESC)
+	.option('--texcoord <index>', 'Target texture coordinate index. 0 = TEXCOORD_0, etc.', {
+		validator: Validator.NUMBER,
+		default: 0,
+	})
+	.option('--overwrite', 'Overwrite existing vertex tangents', {
+		validator: Validator.BOOLEAN,
+		default: false,
+	})
+	.option('--group-by <type>', 'Grouping of texture coordinates for generated atlases', {
+		validator: ['primitive', 'mesh', 'scene'],
+		default: UNWRAP_DEFAULTS.groupBy,
+	})
+	.action(({ args, options, logger }) =>
+		Session.create(io, logger, args.input, args.output).transform(unwrap({ watlas, ...options })),
 	);
 
 // REORDER
@@ -1464,6 +1517,19 @@ for textures where the quality is sufficient.`.trim(),
 		);
 	});
 
+// KTXDECOMPRESS
+program
+	.command('ktxdecompress', 'KTX + Basis texture decompression')
+	.help(
+		`
+		Decompresses KTX2 textures in KTX2 format, converting to PNG.
+		Intended for debugging, or to resolve compatibility issues in
+		software that doesn't support KTX2 textures.`.trim(),
+	)
+	.argument('<input>', INPUT_DESC)
+	.argument('<output>', OUTPUT_DESC)
+	.action(({ args, logger }) => Session.create(io, logger, args.input, args.output).transform(ktxdecompress()));
+
 // KTXFIX
 program
 	.command('ktxfix', 'Fixes common issues in KTX texture metadata')
@@ -1763,6 +1829,6 @@ program.option(
 program.disableGlobalOption('--quiet');
 program.disableGlobalOption('--no-color');
 
-export { program, programReady };
-export * from './util.js';
 export * from './transforms/index.js';
+export * from './util.js';
+export { Validator, program, programReady };

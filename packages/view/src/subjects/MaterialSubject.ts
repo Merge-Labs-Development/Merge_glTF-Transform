@@ -1,23 +1,11 @@
-import {
-	DoubleSide,
-	FrontSide,
-	Material,
-	MeshBasicMaterial,
-	MeshPhysicalMaterial,
-	MeshStandardMaterial,
-	Texture,
-	SRGBColorSpace,
-	NoColorSpace,
-	ColorSpace,
-} from 'three';
-import {
+import type {
 	ExtensionProperty as ExtensionPropertyDef,
 	Material as MaterialDef,
 	Texture as TextureDef,
 	TextureInfo as TextureInfoDef,
 	vec3,
 } from '@gltf-transform/core';
-import {
+import type {
 	Anisotropy,
 	Clearcoat,
 	EmissiveStrength,
@@ -28,12 +16,24 @@ import {
 	Transmission,
 	Volume,
 } from '@gltf-transform/extensions';
+import {
+	type ColorSpace,
+	DoubleSide,
+	FrontSide,
+	type Material,
+	MeshBasicMaterial,
+	MeshPhysicalMaterial,
+	MeshStandardMaterial,
+	NoColorSpace,
+	SRGBColorSpace,
+	type Texture,
+} from 'three';
+import type { Subscription } from '../constants.js';
 import type { DocumentViewImpl } from '../DocumentViewImpl.js';
+import { RefListObserver, RefObserver } from '../observers/index.js';
+import { type TextureParams, TexturePool, type ValuePool } from '../pools/index.js';
 import { eq } from '../utils/index.js';
 import { Subject } from './Subject.js';
-import { RefListObserver, RefObserver } from '../observers/index.js';
-import { Subscription } from '../constants.js';
-import { TextureParams, TexturePool, ValuePool } from '../pools/index.js';
 
 const _vec3: vec3 = [0, 0, 0];
 
@@ -433,6 +433,16 @@ export class MaterialSubject extends Subject<MaterialDef, Material> {
 		if (normalScale !== target.normalScale.x) {
 			target.normalScale.setScalar(normalScale);
 		}
+
+		// KHR_materials_emissive_strength
+		const emissiveStrength = def.getExtension<EmissiveStrength>('KHR_materials_emissive_strength');
+		if (emissiveStrength) {
+			if (emissiveStrength.getEmissiveStrength() !== target.emissiveIntensity) {
+				target.emissiveIntensity = emissiveStrength.getEmissiveStrength();
+			}
+		} else {
+			target.emissiveIntensity = 1.0;
+		}
 	}
 
 	private _updatePhysical(target: MeshPhysicalMaterial) {
@@ -472,16 +482,6 @@ export class MaterialSubject extends Subject<MaterialDef, Material> {
 			}
 		} else {
 			target.clearcoat = 0;
-		}
-
-		// KHR_materials_emissive_strength
-		const emissiveStrength = def.getExtension<EmissiveStrength>('KHR_materials_emissive_strength');
-		if (emissiveStrength) {
-			if (emissiveStrength.getEmissiveStrength() !== target.emissiveIntensity) {
-				target.emissiveIntensity = emissiveStrength.getEmissiveStrength();
-			}
-		} else {
-			target.emissiveIntensity = 1.0;
 		}
 
 		// KHR_materials_ior

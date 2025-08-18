@@ -1,7 +1,5 @@
-import { Extension, ReaderContext, WriterContext } from '@gltf-transform/core';
+import { Extension, type ReaderContext, type WriterContext } from '@gltf-transform/core';
 import { KHR_MESH_QUANTIZATION } from '../constants.js';
-
-const NAME = KHR_MESH_QUANTIZATION;
 
 /**
  * [`KHR_mesh_quantization`](https://github.com/KhronosGroup/gltf/blob/main/extensions/2.0/Khronos/KHR_mesh_quantization/)
@@ -43,8 +41,8 @@ const NAME = KHR_MESH_QUANTIZATION;
  * For more documentation about automatic quantization, see the {@link quantize} function.
  */
 export class KHRMeshQuantization extends Extension {
-	public readonly extensionName = NAME;
-	public static readonly EXTENSION_NAME = NAME;
+	public readonly extensionName: typeof KHR_MESH_QUANTIZATION = KHR_MESH_QUANTIZATION;
+	public static readonly EXTENSION_NAME: typeof KHR_MESH_QUANTIZATION = KHR_MESH_QUANTIZATION;
 
 	/** @hidden */
 	read(_: ReaderContext): this {

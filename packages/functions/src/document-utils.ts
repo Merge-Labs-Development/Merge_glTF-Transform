@@ -1,4 +1,11 @@
-import { Document, Extension, Graph, Property, PropertyResolver, PropertyType } from '@gltf-transform/core';
+import {
+	Document,
+	type Extension,
+	type Graph,
+	type Property,
+	type PropertyResolver,
+	PropertyType,
+} from '@gltf-transform/core';
 
 const { TEXTURE_INFO, ROOT } = PropertyType;
 type PropertyConstructor = new (g: Graph<Property>) => Property;
@@ -25,7 +32,7 @@ export function cloneDocument(source: Document): Document {
 
 	// Root properties (name, asset, default scene, extras) are not overwritten by
 	// mergeDocuments(), and should be explicitly copied when cloning.
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// biome-ignore lint/suspicious/noExplicitAny: TODO
 	target.getRoot().copy(source.getRoot(), resolve as any);
 
 	return target;
@@ -313,7 +320,7 @@ function listPropertyDependencies(parent: Property, visited: Set<Property>): Set
 	const graph = parent.getGraph();
 	const queue: Property[] = [parent];
 
-	let next: Property | undefined = undefined;
+	let next: Property | undefined;
 	while ((next = queue.pop())) {
 		visited.add(next);
 		for (const child of graph.listChildren(next)) {
